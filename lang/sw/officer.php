@@ -1,0 +1,37 @@
+<?php
+
+return [
+    'email' => 'Barua Pepe',
+    'password' => 'Nywila',
+    'sign_in' => 'Ingia',
+
+    'dashboard_title' => 'Muhtasari wa Biashara',
+    'dashboard_subtitle' => 'Taarifa za waombaji mtandaoni, zinazosasishwa moja kwa moja.',
+    'by_location' => 'Waombaji kwa Eneo',
+    'by_profession' => 'Waombaji kwa Taaluma',
+    'no_location_data' => 'Hakuna taarifa za eneo bado.',
+    'no_profession_data' => 'Hakuna taarifa za taaluma bado.',
+
+    'queue_title' => 'Foleni ya Kazi Kulingana na Hatari',
+    'queue_subtitle' => 'Imepangwa kuanzia ya zamani zaidi — anza kutoka juu.',
+    'col_candidate' => 'Mwombaji',
+    'col_type' => 'Aina',
+    'col_sla' => 'SLA',
+    'queue_empty' => 'Hakuna kitu kwenye foleni kwa sasa.',
+    'candidate_summary' => 'Muhtasari wa Mwombaji',
+    'evidence' => 'Ushahidi',
+    'no_evidence' => 'Hakuna ushahidi wa kuunga mkono uliopakiwa bado.',
+    'checklist' => 'Orodha ya Uthibitishaji',
+    'submitted_details' => 'Maelezo Yaliyowasilishwa',
+    'trust_record' => 'Rekodi ya Uaminifu Inayoweza Kutumika Tena',
+    'internal_notes' => 'Maelezo ya Ndani',
+    'staff_only' => '(wafanyakazi tu)',
+    'no_notes' => 'Hakuna maelezo bado.',
+    'note_placeholder' => 'Ongeza maelezo…',
+    'add' => 'Ongeza',
+    'approve' => 'Idhinisha',
+    'reject' => 'Kataa',
+    'select_item' => 'Chagua kipengele kutoka kwenye foleni kukipitia.',
+    'payer_label' => 'Mlipaji: :payer',
+    'submitted_label' => 'Iliwasilishwa :date',
+];

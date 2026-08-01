@@ -1,0 +1,37 @@
+<?php
+
+return [
+    'email' => 'E-mail',
+    'password' => 'Mot de passe',
+    'sign_in' => 'Se Connecter',
+
+    'dashboard_title' => 'Aperçu de l\'Activité',
+    'dashboard_subtitle' => 'Données des candidats sur tout le réseau, mises à jour en direct.',
+    'by_location' => 'Candidats par Lieu',
+    'by_profession' => 'Candidats par Profession',
+    'no_location_data' => 'Aucune donnée de lieu pour le moment.',
+    'no_profession_data' => 'Aucune donnée de profession pour le moment.',
+
+    'queue_title' => 'File de Travail Basée sur le Risque',
+    'queue_subtitle' => 'Triée du plus ancien au plus récent — commencez par le haut.',
+    'col_candidate' => 'Candidat',
+    'col_type' => 'Type',
+    'col_sla' => 'SLA',
+    'queue_empty' => 'Rien dans la file pour le moment.',
+    'candidate_summary' => 'Résumé du Candidat',
+    'evidence' => 'Preuves',
+    'no_evidence' => 'Aucune preuve justificative téléversée pour le moment.',
+    'checklist' => 'Liste de Vérification',
+    'submitted_details' => 'Détails Soumis',
+    'trust_record' => 'Dossier de Confiance Réutilisable',
+    'internal_notes' => 'Notes Internes',
+    'staff_only' => '(personnel uniquement)',
+    'no_notes' => 'Aucune note pour le moment.',
+    'note_placeholder' => 'Ajouter une note…',
+    'add' => 'Ajouter',
+    'approve' => 'Approuver',
+    'reject' => 'Rejeter',
+    'select_item' => 'Sélectionnez un élément dans la file pour l\'examiner.',
+    'payer_label' => 'Payeur : :payer',
+    'submitted_label' => 'Soumis le :date',
+];

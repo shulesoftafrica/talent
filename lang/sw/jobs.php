@@ -1,0 +1,29 @@
+<?php
+
+return [
+    'greeting' => 'Habari za asubuhi, :name',
+    'subtitle' => 'Kazi :count zinazolingana nawe leo',
+    'unlock_premium' => '🔒 Fungua Premium',
+    'unlock_premium_desc' => 'Ona kazi zote zinazolingana · Kocha wa Kazi wa AI · Uchambuzi wa Upungufu wa Ujuzi',
+    'unlock' => 'Fungua →',
+    'matched_for_you' => 'Kazi zinazolingana nawe',
+    'school_hidden' => 'Shule imefichwa mpaka utakapoomba',
+    'posted_days_ago' => 'Ilichapishwa siku :n zilizopita',
+    'match_pct' => 'Inalingana :pct%',
+    'apply_before' => 'Omba kabla ya',
+    'apply_before_last_day' => 'siku ya mwisho',
+    'apply_before_days_left' => 'siku :n zilizobaki',
+    'missing_hint' => 'Kinachokosekana: :x — kukiongeza kunaweza kuongeza kulingana huku.',
+    'applied' => '✓ Umeomba',
+    'apply' => 'Omba',
+    'job_coach' => '✨ Kocha wa Kazi',
+    'save' => 'Hifadhi',
+    'no_jobs' => 'Hakuna kazi wazi kwa sasa',
+    'no_jobs_desc' => 'Rudi baadaye — fursa mpya huchapishwa mara kwa mara.',
+    'free_matches_done' => 'Hizo ndizo kazi zako za bure zinazolingana',
+    'more_matches' => 'Kazi :n zaidi inayolingana inapatikana na Premium|Kazi :n zaidi zinazolingana zinapatikana na Premium',
+    'unlock_premium_cta' => 'Fungua Premium →',
+
+    'coach_title' => '✨ Kocha wa Kazi',
+    'coach_preparing' => 'Tunakuandaa kwa :job:',
+];

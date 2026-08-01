@@ -1,0 +1,37 @@
+<?php
+
+return [
+    'email' => 'Email',
+    'password' => 'Password',
+    'sign_in' => 'Sign In',
+
+    'dashboard_title' => 'Business Snapshot',
+    'dashboard_subtitle' => 'Network-wide candidate data, updated live.',
+    'by_location' => 'Candidates by Location',
+    'by_profession' => 'Candidates by Profession',
+    'no_location_data' => 'No location data yet.',
+    'no_profession_data' => 'No profession data yet.',
+
+    'queue_title' => 'Risk-Based Work Queue',
+    'queue_subtitle' => 'Sorted oldest-first — start from the top.',
+    'col_candidate' => 'Candidate',
+    'col_type' => 'Type',
+    'col_sla' => 'SLA',
+    'queue_empty' => 'Nothing in the queue right now.',
+    'candidate_summary' => 'Candidate Summary',
+    'evidence' => 'Evidence',
+    'no_evidence' => 'No supporting evidence uploaded yet.',
+    'checklist' => 'Verification Checklist',
+    'submitted_details' => 'Submitted Details',
+    'trust_record' => 'Reusable Trust Record',
+    'internal_notes' => 'Internal Notes',
+    'staff_only' => '(staff only)',
+    'no_notes' => 'No notes yet.',
+    'note_placeholder' => 'Add a note…',
+    'add' => 'Add',
+    'approve' => 'Approve',
+    'reject' => 'Reject',
+    'select_item' => 'Select an item from the queue to review it.',
+    'payer_label' => 'Payer: :payer',
+    'submitted_label' => 'Submitted :date',
+];

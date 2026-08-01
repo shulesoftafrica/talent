@@ -1,0 +1,29 @@
+<?php
+
+return [
+    'greeting' => 'Good morning, :name',
+    'subtitle' => ':count jobs matched for you today',
+    'unlock_premium' => '🔒 Unlock Premium',
+    'unlock_premium_desc' => 'See all matching jobs · AI Career Coach · Skills Gap Analysis',
+    'unlock' => 'Unlock →',
+    'matched_for_you' => 'Jobs matched for you',
+    'school_hidden' => 'School hidden until you apply',
+    'posted_days_ago' => 'Posted :n d ago',
+    'match_pct' => ':pct% match',
+    'apply_before' => 'Apply before',
+    'apply_before_last_day' => 'last day',
+    'apply_before_days_left' => ':n days left',
+    'missing_hint' => 'Missing: :x — adding it may raise this match.',
+    'applied' => '✓ Applied',
+    'apply' => 'Apply',
+    'job_coach' => '✨ Job Coach',
+    'save' => 'Save',
+    'no_jobs' => 'No open jobs right now',
+    'no_jobs_desc' => 'Check back soon — new opportunities are posted regularly.',
+    'free_matches_done' => "That's it for your free matches",
+    'more_matches' => ':n more match available with Premium|:n more matches available with Premium',
+    'unlock_premium_cta' => 'Unlock Premium →',
+
+    'coach_title' => '✨ Job Coach',
+    'coach_preparing' => 'Preparing you for :job:',
+];

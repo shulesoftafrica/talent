@@ -1,0 +1,55 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+    /* Light theme (default) */
+    --color-ttn-bg: oklch(0.995 0.003 95);
+    --color-ttn-card: #fff;
+    --color-ttn-border: oklch(0.9 0.006 95);
+    --color-ttn-subtle: oklch(0.965 0.006 95);
+    --color-ttn-hairline: oklch(0.95 0.004 95);
+    --color-ttn-track: oklch(0.94 0.004 95);
+    --color-ttn-text: oklch(0.22 0.01 95);
+    --color-ttn-text2: oklch(0.5 0.01 95);
+    --color-ttn-sidebar: oklch(0.97 0.02 168);
+
+    /* Brand */
+    --color-ttn-primary: oklch(0.52 0.135 168);
+    --color-ttn-primary-dark: oklch(0.42 0.12 168);
+    --color-ttn-primary-light: oklch(0.94 0.03 168);
+    --color-ttn-amber: oklch(0.78 0.13 85);
+    --color-ttn-amber-text: oklch(0.5 0.11 80);
+    --color-ttn-amber-bg: oklch(0.96 0.04 80);
+    --color-ttn-red: oklch(0.55 0.18 25);
+    --color-ttn-red-bg: oklch(0.95 0.03 25);
+    --color-ttn-navy: oklch(0.24 0.015 260);
+}
+
+.dark {
+    --color-ttn-bg: oklch(0.17 0.012 260);
+    --color-ttn-card: oklch(0.23 0.014 260);
+    --color-ttn-border: oklch(0.32 0.015 260);
+    --color-ttn-subtle: oklch(0.27 0.016 260);
+    --color-ttn-hairline: oklch(0.3 0.015 260);
+    --color-ttn-track: oklch(0.3 0.015 260);
+    --color-ttn-text: oklch(0.94 0.006 95);
+    --color-ttn-text2: oklch(0.7 0.01 95);
+    --color-ttn-sidebar: oklch(0.21 0.02 168);
+}
+
+body {
+    background: var(--color-ttn-bg);
+    color: var(--color-ttn-text);
+}
+
+[x-cloak] {
+    display: none !important;
+}
