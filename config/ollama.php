@@ -12,13 +12,17 @@ return [
     | API key is needed. Leave OLLAMA_URL empty to disable the fallback
     | entirely (the app then behaves exactly as it did before this existed).
     */
-    'url' => env('OLLAMA_URL', 'https://ai.shulesoft.group'),
+    // Points at the local Ollama instance directly (no external hostname —
+    // external access to it was disabled for security, so this only works
+    // when the app and Ollama run on the same host).
+    'url' => env('OLLAMA_URL', 'http://127.0.0.1:11434'),
 
-    // llama3 responds ~3x faster than qwen3:8b here because qwen3 is a
-    // "thinking" model that spends most of its time on chain-of-thought
-    // reasoning before the actual answer — not worth the wait on a fallback
-    // path that only ever runs because something's already gone wrong.
-    'model' => env('OLLAMA_MODEL', 'llama3:latest'),
+    // qwen3 is the only model installed on the live server. It's a
+    // "thinking" model that spends real time on chain-of-thought before
+    // the actual answer, so this is meaningfully slower than a plain
+    // completion model — acceptable since this path only ever runs
+    // because OpenAI has already failed.
+    'model' => env('OLLAMA_MODEL', 'qwen3:latest'),
 
     // Self-hosted inference is much slower than OpenAI, and this path only
     // runs when OpenAI has already failed, so it's given a generous budget.
