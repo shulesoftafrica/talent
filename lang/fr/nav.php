@@ -12,5 +12,6 @@ return [
     'ops_subtitle' => 'Console des Agents de Vérification',
     'ops_dashboard' => 'Tableau de bord',
     'ops_queue' => 'File d\'attente',
+    'ops_ai_usage' => 'Utilisation IA',
     'ops_sign_out' => 'Déconnexion (:name)',
 ];

@@ -12,5 +12,6 @@ return [
     'ops_subtitle' => 'Verification Officer Console',
     'ops_dashboard' => 'Dashboard',
     'ops_queue' => 'Queue',
+    'ops_ai_usage' => 'AI Usage',
     'ops_sign_out' => 'Sign out (:name)',
 ];

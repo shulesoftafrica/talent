@@ -77,6 +77,10 @@ class CvParserService
         // short career-coach modals) — that silently truncates the JSON
         // mid-object, which then fails to decode and looks like "parsing
         // didn't work" even though the API call itself succeeded.
-        return $this->openAi->chatJson($system, $rawText, maxTokens: 3000);
+        //
+        // No candidate_id here — this runs during signup, before the
+        // candidate record exists, so cost tracking logs it under
+        // AiFeature::CV_PARSE with candidate_id null.
+        return $this->openAi->chatJson($system, $rawText, maxTokens: 3000, feature: AiFeature::CV_PARSE);
     }
 }

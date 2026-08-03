@@ -45,6 +45,10 @@
                    class="rounded-lg px-3 py-2.5 text-[13.5px] font-semibold {{ $active === 'queue' ? 'bg-ttn-amber text-ttn-navy' : 'text-white/75 hover:bg-white/10' }}">
                     {{ __('nav.ops_queue') }}
                 </a>
+                <a href="{{ route('officer.ai-usage') }}"
+                   class="rounded-lg px-3 py-2.5 text-[13.5px] font-semibold {{ $active === 'ai-usage' ? 'bg-ttn-amber text-ttn-navy' : 'text-white/75 hover:bg-white/10' }}">
+                    🤖 {{ __('nav.ops_ai_usage') }}
+                </a>
             </nav>
 
             <div class="mt-auto flex flex-col gap-3 border-t border-white/15 pt-3">

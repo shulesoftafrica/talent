@@ -23,6 +23,7 @@ use App\Http\Controllers\Candidate\TrainingController;
 use App\Http\Controllers\Candidate\VerificationCheckoutController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\Officer\AiUsageController as OfficerAiUsageController;
 use App\Http\Controllers\Officer\AuthController as OfficerAuthController;
 use App\Http\Controllers\Officer\DashboardController as OfficerDashboardController;
 use App\Http\Controllers\Officer\QueueController as OfficerQueueController;
@@ -169,5 +170,6 @@ Route::prefix('officer')->name('officer.')->group(function () {
         Route::post('/queue/{item}/approve', [OfficerQueueController::class, 'approve'])->name('queue.approve');
         Route::post('/queue/{item}/reject', [OfficerQueueController::class, 'reject'])->name('queue.reject');
         Route::post('/queue/{item}/note', [OfficerQueueController::class, 'addNote'])->name('queue.note');
+        Route::get('/ai-usage', [OfficerAiUsageController::class, 'index'])->name('ai-usage');
     });
 });

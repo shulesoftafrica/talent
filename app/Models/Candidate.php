@@ -120,6 +120,11 @@ class Candidate extends Authenticatable
         return $this->hasMany(CandidateTraining::class);
     }
 
+    public function aiUsageLogs(): HasMany
+    {
+        return $this->hasMany(AiUsageLog::class);
+    }
+
     /**
      * Career answers keyed by field_key, values unwrapped from jsonb.
      *

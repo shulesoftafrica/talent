@@ -32,6 +32,8 @@ class AiCoachService
         $ai = $this->openAi->chatJson(
             system: 'You are a career coach for a school-staffing platform in Africa. Given a candidate profile summary and a list of concrete gaps, return JSON {"items": [{"label": string, "impact": "+N%"}]} with 2-4 short, specific, encouraging suggestions ranked by impact. Only reference gaps actually given — never invent unrelated advice.',
             user: json_encode(['profession' => $candidate->profession, 'gaps' => $gaps]),
+            candidateId: $candidate->id,
+            feature: AiFeature::PROFILE_REVIEW,
         );
 
         if ($ai && !empty($ai['items'])) {
@@ -57,6 +59,9 @@ class AiCoachService
         $ai = $this->openAi->chatJson(
             system: 'You are a career coach for a school-staffing platform in Africa, helping a candidate prepare for a specific job. Return JSON {"topics": [{"title": string, "body": string}]} with exactly 4 short, concrete, encouraging topics covering: interview preparation, any missing profile item, a relevant certification suggestion, and one piece of career advice for this role. Base it only on the job and candidate info given.',
             user: json_encode(['job_title' => $job->title, 'department' => $job->department, 'location' => $job->location, 'candidate_profession' => $candidate->profession, 'missing_gap' => $missingGap]),
+            candidateId: $candidate->id,
+            feature: AiFeature::JOB_COACH,
+            meta: ['job_title' => $job->title],
         );
 
         if ($ai && !empty($ai['topics'])) {

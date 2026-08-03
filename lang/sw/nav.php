@@ -12,5 +12,6 @@ return [
     'ops_subtitle' => 'Dashibodi ya Afisa wa Uthibitishaji',
     'ops_dashboard' => 'Dashibodi',
     'ops_queue' => 'Foleni',
+    'ops_ai_usage' => 'Matumizi ya AI',
     'ops_sign_out' => 'Toka (:name)',
 ];
