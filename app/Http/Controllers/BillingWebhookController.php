@@ -107,7 +107,7 @@ class BillingWebhookController extends Controller
      */
     private function route(?string $event, VerificationOrder $order): void
     {
-        $successEvents = ['payment.success', 'subscription.created', 'subscription.renewed', 'subscription.upgraded'];
+        $successEvents = ['payment.success', 'invoice.paid', 'subscription.created', 'subscription.renewed', 'subscription.upgraded'];
         $failureEvents = ['payment.failed', 'subscription.cancelled', 'subscription.expired'];
 
         if (in_array($event, $successEvents, true)) {
@@ -123,9 +123,17 @@ class BillingWebhookController extends Controller
         Log::warning('BillingWebhookController: unrecognized event type — acknowledged, not applied', ['event' => $event]);
     }
 
+    /**
+     * The platform's real payload nests it as a top-level "invoice" object
+     * (confirmed against the billing platform's own docs, /docs/api-documentation.md
+     * §Payload Structure) — invoice.id, not data.invoice_id or invoice_id.
+     * The other paths are kept as defensive fallbacks in case a different
+     * event type ever ships a different shape.
+     */
     private function resolveInvoiceId(Request $request): ?string
     {
-        $value = $request->input('data.invoice_id')
+        $value = $request->input('invoice.id')
+            ?? $request->input('data.invoice_id')
             ?? $request->input('data.invoice.id')
             ?? $request->input('invoice_id')
             ?? $request->input('payment.invoice_id');
