@@ -11,24 +11,54 @@ use App\Models\CandidateHobby;
 use App\Models\CandidatePortfolioItem;
 use App\Models\CandidateSkill;
 use App\Models\Constant\ReferCity;
+use App\Models\Constant\ReferCountry;
+use App\Services\Phone\PhoneNumberNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ProfileItemController extends Controller
 {
+    public function __construct(private readonly PhoneNumberNormalizer $phoneNormalizer)
+    {
+    }
+
     public function updatePersonalInfo(Request $request): RedirectResponse
     {
+        /** @var Candidate $candidate */
+        $candidate = Auth::guard('candidate')->user();
+
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
+            'email' => ['nullable', 'string', 'email', 'max:255', Rule::unique('candidates', 'email')->ignore($candidate->id)],
+            'phone_country_id' => ['required', 'integer'],
+            'phone_national' => ['required', 'string', 'max:20'],
             'country_id' => ['nullable', 'integer'],
             'city_id' => ['nullable', 'integer'],
             'current_employer' => ['nullable', 'string', 'max:255'],
         ]);
 
-        /** @var Candidate $candidate */
-        $candidate = Auth::guard('candidate')->user();
+        $callingCode = ReferCountry::find($data['phone_country_id'])?->country_code;
+
+        if (!$callingCode) {
+            return back()->withErrors(['phone_country_id' => __('profile.phone_country_invalid')])->withInput();
+        }
+
+        $normalizedPhone = $this->phoneNormalizer->combine($callingCode, $data['phone_national']);
+
+        if (Candidate::where('phone', $normalizedPhone)->where('id', '!=', $candidate->id)->exists()) {
+            return back()->withErrors(['phone_national' => __('profile.phone_taken')])->withInput();
+        }
+
+        // A changed number hasn't actually been verified by this candidate
+        // via OTP, so it can't keep the old number's verified status.
+        // phone_verified_at isn't mass-assignable, so it's set separately.
+        $phoneChanged = $normalizedPhone !== $candidate->phone;
+
+        $data['phone'] = $normalizedPhone;
+        unset($data['phone_country_id'], $data['phone_national']);
 
         $data['current_location'] = !empty($data['city_id']) ? ReferCity::find($data['city_id'])?->city : null;
         unset($data['city_id']);
@@ -37,6 +67,10 @@ class ProfileItemController extends Controller
         // no longer describes who they say they currently work for.
         if ($data['current_employer'] !== $candidate->current_employer) {
             $data['current_employer_verified'] = false;
+        }
+
+        if ($phoneChanged) {
+            $candidate->forceFill(['phone_verified_at' => null]);
         }
 
         $candidate->update($data);

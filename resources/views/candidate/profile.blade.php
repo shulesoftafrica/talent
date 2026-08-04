@@ -58,6 +58,10 @@
                 <div class="rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px] font-medium">{{ $candidate->phone }}</div>
             </div>
             <div>
+                <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.email') }}</div>
+                <div class="rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px] font-medium">{{ $candidate->email ?: '—' }}</div>
+            </div>
+            <div>
                 <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.country') }}</div>
                 <div class="rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px] font-medium">{{ $countryName ?: '—' }}</div>
             </div>
@@ -88,7 +92,20 @@
             </div>
             <div>
                 <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.phone') }}</div>
-                <div class="rounded-lg border border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[13.5px] font-medium text-ttn-text2">{{ $candidate->phone }}</div>
+                <div class="flex gap-2">
+                    <select name="phone_country_id" required class="w-[42%] shrink-0 rounded-lg border border-ttn-border px-2 py-2.5 text-[13.5px]">
+                        <option value="">{{ __('profile.phone_country_placeholder') }}</option>
+                        @foreach ($countries as $country)
+                            <option value="{{ $country->id }}" @selected(old('phone_country_id', $phoneCountryId) == $country->id)>+{{ $country->country_code }} {{ $country->country }}</option>
+                        @endforeach
+                    </select>
+                    <input name="phone_national" type="tel" inputmode="numeric" value="{{ old('phone_national', $phoneNational) }}" required placeholder="{{ __('profile.phone_national_placeholder') }}" class="flex-1 min-w-0 rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px]">
+                </div>
+                <div class="text-[10.5px] text-ttn-text2 mt-1">{{ __('profile.phone_hint') }}</div>
+            </div>
+            <div>
+                <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.email') }}</div>
+                <input name="email" type="email" value="{{ old('email', $candidate->email) }}" placeholder="{{ __('profile.email_placeholder') }}" class="w-full rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px]">
             </div>
             <div>
                 <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.country') }}</div>

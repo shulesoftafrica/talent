@@ -7,6 +7,7 @@ use App\Models\Candidate;
 use App\Models\Constant\ReferCity;
 use App\Services\Location\CountryDetectionService;
 use App\Services\Notifications\OtpService;
+use App\Services\Phone\PhoneNumberNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,6 +20,7 @@ class OtpController extends Controller
     public function __construct(
         private readonly OtpService $otp,
         private readonly CountryDetectionService $countryDetection,
+        private readonly PhoneNumberNormalizer $phoneNormalizer,
     ) {
     }
 
@@ -29,18 +31,11 @@ class OtpController extends Controller
             'purpose' => ['required', Rule::in(['login', 'signup'])],
         ]);
 
-        if ($data['purpose'] === 'login') {
-            $exists = Candidate::query()
-                ->where('phone', $data['phone_or_email'])
-                ->orWhere('email', $data['phone_or_email'])
-                ->exists();
-
-            if (!$exists) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "We couldn't find a profile for that phone/email. Try \"I'm New\" instead.",
-                ], 422);
-            }
+        if ($data['purpose'] === 'login' && !$this->findCandidateByIdentifier($data['phone_or_email'])) {
+            return response()->json([
+                'success' => false,
+                'message' => "We couldn't find a profile for that phone/email. Try \"I'm New\" instead.",
+            ], 422);
         }
 
         $this->otp->send($data['phone_or_email'], $data['purpose']);
@@ -82,9 +77,12 @@ class OtpController extends Controller
 
         $cityName = !empty($data['city_id']) ? ReferCity::find($data['city_id'])?->city : null;
 
-        $candidate = $data['purpose'] === 'signup'
-            ? $this->completeSignup($request, $data['phone_or_email'], $data['full_name'] ?? null, $data['country_id'] ?? null, $cityName)
-            : Candidate::where('phone', $data['phone_or_email'])->orWhere('email', $data['phone_or_email'])->firstOrFail();
+        if ($data['purpose'] === 'signup') {
+            $candidate = $this->completeSignup($request, $data['phone_or_email'], $data['full_name'] ?? null, $data['country_id'] ?? null, $cityName);
+        } else {
+            $candidate = $this->findCandidateByIdentifier($data['phone_or_email']);
+            abort_if(!$candidate, 404);
+        }
 
         $isEmail = str_contains($data['phone_or_email'], '@');
         $candidate->forceFill([
@@ -109,7 +107,7 @@ class OtpController extends Controller
      */
     private function completeSignup(Request $request, string $phone, ?string $fullNameOverride, ?int $countryIdOverride = null, ?string $cityNameOverride = null): Candidate
     {
-        $existing = Candidate::where('phone', $phone)->first();
+        $existing = $this->findCandidateByIdentifier($phone);
         if ($existing) {
             return $existing;
         }
@@ -123,11 +121,17 @@ class OtpController extends Controller
         // contain), falling back to the CV's location text.
         $countryId = $countryIdOverride ?? $this->countryDetection->detect($phone, $parsed['location'] ?? null);
 
-        return DB::transaction(function () use ($onboarding, $parsed, $phone, $fullNameOverride, $countryId, $cityNameOverride) {
+        // Store phone consistently as "+<calling code><national number>"
+        // regardless of how the candidate typed it or what the CV
+        // contained — falls back to the CV's location text, then Tanzania,
+        // if no calling code and no detected country are available.
+        $normalizedPhone = $this->phoneNormalizer->normalizeFreeform($phone, $parsed['location'] ?? null, $countryId) ?? $phone;
+
+        return DB::transaction(function () use ($onboarding, $parsed, $normalizedPhone, $fullNameOverride, $countryId, $cityNameOverride) {
             $candidate = Candidate::create([
                 'full_name' => $fullNameOverride ?: ($parsed['full_name'] ?? 'New Candidate'),
                 'email' => $parsed['email'] ?? null,
-                'phone' => $phone,
+                'phone' => $normalizedPhone,
                 'current_location' => $cityNameOverride ?: ($parsed['location'] ?? null),
                 'country_id' => $countryId,
             ]);
@@ -195,5 +199,28 @@ class OtpController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Stored phone numbers are normalized to "+<calling code><national
+     * number>", but a candidate may still type the same number in whatever
+     * local format they originally used (or in the format it had before
+     * normalization/backfill) — match on the trailing national-significant
+     * digits rather than requiring an exact string match, so login/signup
+     * keep resolving to the same account regardless of formatting.
+     */
+    private function findCandidateByIdentifier(string $identifier): ?Candidate
+    {
+        if (str_contains($identifier, '@')) {
+            return Candidate::where('email', $identifier)->first();
+        }
+
+        $national = ltrim(preg_replace('/\D/', '', $identifier) ?? '', '0');
+
+        if ($national === '') {
+            return null;
+        }
+
+        return Candidate::whereRaw("regexp_replace(phone, '\\D', '', 'g') LIKE ?", ['%' . $national])->first();
     }
 }
