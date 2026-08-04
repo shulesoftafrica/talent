@@ -25,7 +25,7 @@
             editing: false,
             countryId: {{ $candidate->country_id ?? 'null' }},
             cityId: {{ $initialCityId ?? 'null' }},
-            cities: @json($initialCities),
+            cities: @js($initialCities),
             async loadCities(resetCity = true) {
                 if (resetCity) this.cityId = '';
                 this.cities = [];
@@ -37,6 +37,7 @@
                 } catch (e) { this.cities = []; }
             },
         }"
+        x-init="$nextTick(() => { const el = $refs.citySelect; if (el) el.value = cityId; })"
         class="rounded-2xl border border-ttn-border bg-ttn-card p-4 sm:p-6 mb-4"
     >
         <div class="flex justify-between items-center mb-4">
@@ -100,7 +101,7 @@
             </div>
             <div>
                 <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.preferred_location') }}</div>
-                <select name="city_id" x-model="cityId" :disabled="!countryId" class="w-full rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px] disabled:opacity-50">
+                <select name="city_id" x-ref="citySelect" x-model="cityId" :disabled="!countryId" class="w-full rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px] disabled:opacity-50">
                     <option value="">{{ __('landing.city_placeholder') }}</option>
                     <template x-for="city in cities" :key="city.id">
                         <option :value="city.id" x-text="city.city"></option>
