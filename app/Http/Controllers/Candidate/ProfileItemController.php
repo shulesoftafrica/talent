@@ -10,6 +10,7 @@ use App\Models\CandidateExperience;
 use App\Models\CandidateHobby;
 use App\Models\CandidatePortfolioItem;
 use App\Models\CandidateSkill;
+use App\Models\Constant\ReferCity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,12 +22,16 @@ class ProfileItemController extends Controller
     {
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
-            'current_location' => ['nullable', 'string', 'max:255'],
+            'country_id' => ['nullable', 'integer'],
+            'city_id' => ['nullable', 'integer'],
             'current_employer' => ['nullable', 'string', 'max:255'],
         ]);
 
         /** @var Candidate $candidate */
         $candidate = Auth::guard('candidate')->user();
+
+        $data['current_location'] = !empty($data['city_id']) ? ReferCity::find($data['city_id'])?->city : null;
+        unset($data['city_id']);
 
         // Changing employer invalidates any prior employer verification — it
         // no longer describes who they say they currently work for.

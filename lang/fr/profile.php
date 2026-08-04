@@ -6,6 +6,7 @@ return [
     'personal_info' => 'Informations Personnelles',
     'full_name' => 'Nom Complet',
     'phone' => 'Téléphone',
+    'country' => 'Pays',
     'preferred_location' => 'Lieu Préféré',
     'current_employer' => 'Employeur Actuel',
     'current_employer_pending' => '⚠ Employeur Actuel',

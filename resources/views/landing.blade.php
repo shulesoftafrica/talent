@@ -137,6 +137,24 @@
                                     <span class="text-ttn-primary-dark shrink-0">{{ __('landing.whatsapp_number') }}</span>
                                     <input x-model="parsedPhone" placeholder="{{ __('landing.contact_placeholder') }}" class="bg-transparent font-bold text-right w-24 sm:w-40 min-w-0 focus:outline-none">
                                 </div>
+                                <div class="rounded-lg bg-ttn-subtle px-3.5 py-2.5">
+                                    <div class="text-[11px] font-semibold text-ttn-text2 mb-1">{{ __('landing.country') }}</div>
+                                    <select x-model="parsedCountryId" @change="loadCities()" class="w-full bg-transparent text-[13.5px] font-bold focus:outline-none">
+                                        <option value="" disabled>{{ __('landing.country_placeholder') }}</option>
+                                        @foreach ($countries as $country)
+                                            <option value="{{ $country->id }}">{{ $country->country }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="rounded-lg bg-ttn-subtle px-3.5 py-2.5" x-show="parsedCountryId" x-cloak>
+                                    <div class="text-[11px] font-semibold text-ttn-text2 mb-1">{{ __('landing.city') }}</div>
+                                    <select x-model="parsedCityId" class="w-full bg-transparent text-[13.5px] font-bold focus:outline-none">
+                                        <option value="">{{ __('landing.city_placeholder') }}</option>
+                                        <template x-for="city in cities" :key="city.id">
+                                            <option :value="city.id" x-text="city.city"></option>
+                                        </template>
+                                    </select>
+                                </div>
                             </div>
                             <button
                                 @click="openOtpForSignup()" :disabled="otpSending || !parsedPhone"
@@ -245,6 +263,9 @@
                 parsedFullName: '',
                 parsedRole: '',
                 parsedPhone: '',
+                parsedCountryId: '',
+                parsedCityId: '',
+                cities: [],
                 loginContact: '',
                 loginError: null,
                 otpOpen: false,
@@ -279,11 +300,30 @@
                         this.parsedFullName = data.full_name || '';
                         this.parsedRole = data.role || '';
                         this.parsedPhone = data.phone || '';
+                        this.parsedCountryId = data.country_id || '';
                         this.cvParsed = true;
+                        if (this.parsedCountryId) {
+                            await this.loadCities();
+                        }
                     } catch (e) {
                         this.cvError = T.upload_failed;
                     } finally {
                         this.cvUploading = false;
+                    }
+                },
+
+                async loadCities() {
+                    this.parsedCityId = '';
+                    this.cities = [];
+                    if (!this.parsedCountryId) return;
+                    try {
+                        const res = await fetch('{{ route('reference.cities') }}?country_id=' + this.parsedCountryId, {
+                            headers: { 'Accept': 'application/json' },
+                        });
+                        const data = await res.json();
+                        this.cities = data.cities || [];
+                    } catch (e) {
+                        this.cities = [];
                     }
                 },
 
@@ -342,6 +382,8 @@
                         code: this.otpCode,
                         purpose: this.otpPurpose,
                         full_name: this.otpPurpose === 'signup' ? this.parsedFullName : undefined,
+                        country_id: this.otpPurpose === 'signup' ? (this.parsedCountryId || undefined) : undefined,
+                        city_id: this.otpPurpose === 'signup' ? (this.parsedCityId || undefined) : undefined,
                     });
                     this.otpVerifying = false;
 

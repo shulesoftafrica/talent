@@ -25,6 +25,11 @@ return [
     'cv_upload' => 'Pakia CV',
     'whatsapp_note' => 'Tafadhali jumuisha namba yako ya WhatsApp kwenye CV — tutakuwasiliana huko kwanza kwa taarifa na mialiko ya mahojiano.',
 
+    'country' => 'Nchi',
+    'country_placeholder' => 'Chagua nchi yako',
+    'city' => 'Jiji',
+    'city_placeholder' => 'Chagua jiji lako',
+
     'cv_parsed' => 'CV imesomwa — tafadhali thibitisha taarifa zako',
     'cv_confirm_manual' => 'Karibu — thibitisha taarifa chache',
     'full_name' => 'Jina kamili',

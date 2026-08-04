@@ -25,6 +25,11 @@ return [
     'cv_upload' => 'Téléverser le CV',
     'whatsapp_note' => "Veuillez inclure votre numéro WhatsApp dans votre CV — nous vous contacterons d'abord là-bas pour les mises à jour et invitations aux entretiens.",
 
+    'country' => 'Pays',
+    'country_placeholder' => 'Sélectionnez votre pays',
+    'city' => 'Ville',
+    'city_placeholder' => 'Sélectionnez votre ville',
+
     'cv_parsed' => 'CV analysé — veuillez confirmer vos informations',
     'cv_confirm_manual' => 'Presque terminé — quelques informations à confirmer',
     'full_name' => 'Nom complet',

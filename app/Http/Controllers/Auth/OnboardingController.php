@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Services\AI\CvParserService;
+use App\Services\Location\CountryDetectionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
  */
 class OnboardingController extends Controller
 {
-    public function uploadCv(Request $request, CvParserService $parser): JsonResponse
+    public function uploadCv(Request $request, CvParserService $parser, CountryDetectionService $countryDetection): JsonResponse
     {
         $request->validate([
             'cv' => ['required', 'file', 'mimes:pdf,docx,doc', 'max:5120'],
@@ -51,11 +52,18 @@ class OnboardingController extends Controller
 
         $firstExperience = $parsed['experiences'][0] ?? null;
 
+        // Best-effort guess from whatever the CV happened to contain — the
+        // candidate confirms/corrects it on the signup screen, and the
+        // final phone number they actually verify with is re-checked
+        // server-side at signup regardless (see Auth\OtpController).
+        $countryId = $countryDetection->detect($parsed['phone'] ?? null, $parsed['location'] ?? null);
+
         return response()->json([
             'success' => true,
             'full_name' => $parsed['full_name'] ?? null,
             'role' => $firstExperience['title'] ?? null,
             'phone' => $parsed['phone'] ?? null,
+            'country_id' => $countryId,
         ]);
     }
 }

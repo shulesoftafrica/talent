@@ -25,6 +25,11 @@ return [
     'cv_upload' => 'Upload CV',
     'whatsapp_note' => "Please include your WhatsApp number in your CV — we'll reach you there first with updates and interview invites.",
 
+    'country' => 'Country',
+    'country_placeholder' => 'Select your country',
+    'city' => 'City',
+    'city_placeholder' => 'Select your city',
+
     'cv_parsed' => 'CV parsed — please confirm your details',
     'cv_confirm_manual' => 'Almost there — a few details to confirm',
     'full_name' => 'Full name',

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Candidate;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
+use App\Models\Constant\ReferCity;
+use App\Models\Constant\ReferCountry;
 use App\Services\CareerBuilder\CareerBuilderDataService;
 use App\Services\Verification\VerificationStatus;
 use Illuminate\Support\Facades\Auth;
@@ -24,10 +26,22 @@ class ProfileController extends Controller
 
         $profileCompletion = $this->profileCompletion($candidate);
 
+        $countryName = $candidate->country_id ? ReferCountry::find($candidate->country_id)?->country : null;
+        $initialCities = $candidate->country_id
+            ? ReferCity::where('countryid', $candidate->country_id)->orderBy('city')->get(['id', 'city'])
+            : collect();
+        $initialCityId = $candidate->current_location
+            ? $initialCities->firstWhere('city', $candidate->current_location)?->id
+            : null;
+
         return view('candidate.profile', [
             'candidate' => $candidate,
             'profileCompletion' => $profileCompletion,
             'builder' => $this->careerBuilder->build($candidate),
+            'countries' => ReferCountry::orderBy('country')->get(['id', 'country']),
+            'countryName' => $countryName,
+            'initialCities' => $initialCities,
+            'initialCityId' => $initialCityId,
         ]);
     }
 

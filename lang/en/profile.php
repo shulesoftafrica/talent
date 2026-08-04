@@ -6,6 +6,7 @@ return [
     'personal_info' => 'Personal Information',
     'full_name' => 'Full Name',
     'phone' => 'Phone',
+    'country' => 'Country',
     'preferred_location' => 'Preferred Location',
     'current_employer' => 'Current Employer',
     'current_employer_pending' => '⚠ Current Employer',

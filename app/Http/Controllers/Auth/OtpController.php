@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
+use App\Models\Constant\ReferCity;
+use App\Services\Location\CountryDetectionService;
 use App\Services\Notifications\OtpService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,8 +16,10 @@ use Illuminate\Validation\Rule;
 
 class OtpController extends Controller
 {
-    public function __construct(private readonly OtpService $otp)
-    {
+    public function __construct(
+        private readonly OtpService $otp,
+        private readonly CountryDetectionService $countryDetection,
+    ) {
     }
 
     public function send(Request $request): JsonResponse
@@ -63,6 +67,8 @@ class OtpController extends Controller
             'code' => ['required', 'string', 'size:6'],
             'purpose' => ['required', Rule::in(['login', 'signup'])],
             'full_name' => ['nullable', 'string', 'max:255'],
+            'country_id' => ['nullable', 'integer'],
+            'city_id' => ['nullable', 'integer'],
         ]);
 
         $valid = $this->otp->verify($data['phone_or_email'], $data['code'], $data['purpose']);
@@ -74,8 +80,10 @@ class OtpController extends Controller
             ], 422);
         }
 
+        $cityName = !empty($data['city_id']) ? ReferCity::find($data['city_id'])?->city : null;
+
         $candidate = $data['purpose'] === 'signup'
-            ? $this->completeSignup($request, $data['phone_or_email'], $data['full_name'] ?? null)
+            ? $this->completeSignup($request, $data['phone_or_email'], $data['full_name'] ?? null, $data['country_id'] ?? null, $cityName)
             : Candidate::where('phone', $data['phone_or_email'])->orWhere('email', $data['phone_or_email'])->firstOrFail();
 
         $isEmail = str_contains($data['phone_or_email'], '@');
@@ -99,7 +107,7 @@ class OtpController extends Controller
      * parsed from the CV) from the onboarding session data captured in
      * Auth\OnboardingController::uploadCv.
      */
-    private function completeSignup(Request $request, string $phone, ?string $fullNameOverride): Candidate
+    private function completeSignup(Request $request, string $phone, ?string $fullNameOverride, ?int $countryIdOverride = null, ?string $cityNameOverride = null): Candidate
     {
         $existing = Candidate::where('phone', $phone)->first();
         if ($existing) {
@@ -109,12 +117,19 @@ class OtpController extends Controller
         $onboarding = $request->session()->get('onboarding', []);
         $parsed = $onboarding['parsed'] ?? [];
 
-        return DB::transaction(function () use ($onboarding, $parsed, $phone, $fullNameOverride) {
+        // The candidate's chosen dropdown value wins if they set one;
+        // otherwise re-detect from the phone number they actually just
+        // verified with (which may differ from whatever the CV happened to
+        // contain), falling back to the CV's location text.
+        $countryId = $countryIdOverride ?? $this->countryDetection->detect($phone, $parsed['location'] ?? null);
+
+        return DB::transaction(function () use ($onboarding, $parsed, $phone, $fullNameOverride, $countryId, $cityNameOverride) {
             $candidate = Candidate::create([
                 'full_name' => $fullNameOverride ?: ($parsed['full_name'] ?? 'New Candidate'),
                 'email' => $parsed['email'] ?? null,
                 'phone' => $phone,
-                'current_location' => $parsed['location'] ?? null,
+                'current_location' => $cityNameOverride ?: ($parsed['location'] ?? null),
+                'country_id' => $countryId,
             ]);
 
             if (!empty($onboarding['cv_stored_path'])) {

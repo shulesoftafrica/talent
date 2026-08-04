@@ -23,6 +23,7 @@ use App\Http\Controllers\Candidate\TrainingController;
 use App\Http\Controllers\Candidate\VerificationCheckoutController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\ReferenceController;
 use App\Http\Controllers\Officer\AiUsageController as OfficerAiUsageController;
 use App\Http\Controllers\Officer\AuthController as OfficerAuthController;
 use App\Http\Controllers\Officer\DashboardController as OfficerDashboardController;
@@ -35,6 +36,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [LandingController::class, 'index'])->name('landing');
 
 Route::get('/lang/{locale}', [LanguageController::class, 'switch'])->name('language.switch');
+
+Route::get('/reference/cities', [ReferenceController::class, 'cities'])->name('reference.cities');
 
 Route::post('/webhooks/billing', [BillingWebhookController::class, 'handle'])->name('webhooks.billing');
 

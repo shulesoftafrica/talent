@@ -6,6 +6,7 @@ return [
     'personal_info' => 'Taarifa Binafsi',
     'full_name' => 'Jina Kamili',
     'phone' => 'Simu',
+    'country' => 'Nchi',
     'preferred_location' => 'Eneo Unalopendelea',
     'current_employer' => 'Mwajiri wa Sasa',
     'current_employer_pending' => '⚠ Mwajiri wa Sasa',

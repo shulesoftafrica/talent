@@ -20,7 +20,25 @@
     @endif
 
     {{-- Personal Information --}}
-    <div x-data="{ editing: false }" class="rounded-2xl border border-ttn-border bg-ttn-card p-4 sm:p-6 mb-4">
+    <div
+        x-data="{
+            editing: false,
+            countryId: {{ $candidate->country_id ?? 'null' }},
+            cityId: {{ $initialCityId ?? 'null' }},
+            cities: @json($initialCities),
+            async loadCities(resetCity = true) {
+                if (resetCity) this.cityId = '';
+                this.cities = [];
+                if (!this.countryId) return;
+                try {
+                    const res = await fetch('{{ route('reference.cities') }}?country_id=' + this.countryId, { headers: { 'Accept': 'application/json' } });
+                    const data = await res.json();
+                    this.cities = data.cities || [];
+                } catch (e) { this.cities = []; }
+            },
+        }"
+        class="rounded-2xl border border-ttn-border bg-ttn-card p-4 sm:p-6 mb-4"
+    >
         <div class="flex justify-between items-center mb-4">
             <div class="font-display text-[15px] font-bold">{{ __('profile.personal_info') }}</div>
             <button @click="editing = !editing" type="button" class="text-xs font-bold text-ttn-primary-dark cursor-pointer">
@@ -37,6 +55,10 @@
             <div>
                 <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.phone') }}</div>
                 <div class="rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px] font-medium">{{ $candidate->phone }}</div>
+            </div>
+            <div>
+                <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.country') }}</div>
+                <div class="rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px] font-medium">{{ $countryName ?: '—' }}</div>
             </div>
             <div>
                 <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.preferred_location') }}</div>
@@ -68,8 +90,22 @@
                 <div class="rounded-lg border border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[13.5px] font-medium text-ttn-text2">{{ $candidate->phone }}</div>
             </div>
             <div>
+                <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.country') }}</div>
+                <select name="country_id" x-model="countryId" @change="loadCities()" class="w-full rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px]">
+                    <option value="">{{ __('landing.country_placeholder') }}</option>
+                    @foreach ($countries as $country)
+                        <option value="{{ $country->id }}">{{ $country->country }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
                 <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.preferred_location') }}</div>
-                <input name="current_location" value="{{ old('current_location', $candidate->current_location) }}" class="w-full rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px]">
+                <select name="city_id" x-model="cityId" :disabled="!countryId" class="w-full rounded-lg border border-ttn-border px-3 py-2.5 text-[13.5px] disabled:opacity-50">
+                    <option value="">{{ __('landing.city_placeholder') }}</option>
+                    <template x-for="city in cities" :key="city.id">
+                        <option :value="city.id" x-text="city.city"></option>
+                    </template>
+                </select>
             </div>
             <div>
                 <div class="text-[11.5px] font-semibold text-ttn-text2 mb-1.5">{{ __('profile.current_employer') }}</div>
