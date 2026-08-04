@@ -458,7 +458,7 @@
                         </select>
                         <input name="title" value="{{ $item->title }}" placeholder="{{ __('profile.title_placeholder') }}" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px] bg-ttn-card">
                         <div class="text-[10.5px] text-ttn-text2">{{ __('profile.replace_file_optional') }}</div>
-                        <input name="file" type="file" class="text-[13px]">
+                        <input name="file" type="file" class="w-full rounded-lg border border-dashed border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[12.5px] text-ttn-text2 cursor-pointer transition-colors hover:border-ttn-primary file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-ttn-primary file:px-3.5 file:py-1.5 file:text-[12px] file:font-bold file:text-white">
                         <div class="flex gap-2">
                             <button class="rounded-lg bg-ttn-primary px-4 py-2 text-[12.5px] font-bold text-white cursor-pointer">{{ __('profile.save_changes') }}</button>
                             <button @click="editing = false" type="button" class="rounded-lg border border-ttn-border px-4 py-2 text-[12.5px] font-bold text-ttn-text2 cursor-pointer">{{ __('common.cancel') }}</button>
@@ -482,7 +482,7 @@
                 <option value="Document">{{ __('profile.portfolio_type_document') }}</option>
             </select>
             <input name="title" placeholder="{{ __('profile.title_placeholder') }}" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px]">
-            <input name="file" type="file" required class="text-[13px]">
+            <input name="file" type="file" required class="w-full rounded-lg border border-dashed border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[12.5px] text-ttn-text2 cursor-pointer transition-colors hover:border-ttn-primary file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-ttn-primary file:px-3.5 file:py-1.5 file:text-[12px] file:font-bold file:text-white">
             <button class="self-start rounded-lg bg-ttn-primary px-4 py-2 text-[12.5px] font-bold text-white cursor-pointer">{{ __('profile.upload') }}</button>
         </form>
     </div>

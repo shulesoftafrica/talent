@@ -44,7 +44,7 @@
             </div>
             <div>
                 <label class="text-[12.5px] font-semibold block mb-1">{{ __('verification.license.certificate') }}</label>
-                <input type="file" name="certificate" accept="application/pdf" class="w-full text-[12.5px]">
+                <input type="file" name="certificate" accept="application/pdf" class="w-full rounded-lg border border-dashed border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[12.5px] text-ttn-text2 cursor-pointer transition-colors hover:border-ttn-primary file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-ttn-primary file:px-3.5 file:py-1.5 file:text-[12px] file:font-bold file:text-white">
                 @if ($detail->certificate_path)
                     <div class="mt-1 text-[11.5px] text-ttn-primary-dark font-semibold">{{ __('verification.identity.file_on_file') }}</div>
                 @endif
