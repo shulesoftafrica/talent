@@ -50,6 +50,14 @@ class CareerBuilderController extends Controller
             $value = $request->input($key);
             $value = is_array($value) ? array_values(array_filter($value, fn ($v) => $v !== '')) : $value;
 
+            // An empty/cleared field means "no answer yet" — delete the row
+            // rather than writing null, since step-completion is derived
+            // from which field_key rows exist at all (see CareerBuilderDataService).
+            if ($value === null || $value === '' || $value === []) {
+                $candidate->careerAnswers()->where('field_key', $key)->delete();
+                continue;
+            }
+
             $candidate->careerAnswers()->updateOrCreate(
                 ['field_key' => $key],
                 ['field_value' => $value]
