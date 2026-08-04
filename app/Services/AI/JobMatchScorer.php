@@ -80,7 +80,7 @@ class JobMatchScorer
         ])->values()->all();
 
         $response = $this->openAi->chatJson(
-            system: 'You are a job-matching engine for a school-staffing platform in Africa. Given a candidate profile/preferences and a list of active job postings, score how well EACH job matches the candidate from 0-100. Weigh role/profession relevance most heavily (a job unrelated to the candidate\'s profession should score low even if location/salary happen to fit), then location, salary fit, and employment type. Two jobs in different fields should essentially never tie unless they are genuinely equally relevant. IMPORTANT on salary: "minimum_acceptable_salary" is a FLOOR the candidate will accept, not a target — a job\'s salary_max at or above it is always a good fit, and a HIGHER salary is never a downside or a reason to lower the score; only a job whose salary_max falls below that floor is a salary mismatch. Return ONLY JSON: {"scores": [{"job_key": string, "score": integer 0-100, "reasons": [1-3 short strings, most important first], "missing": string|null}]} — exactly one entry per job_key given, any order.',
+            system: 'You are a job-matching engine for a school-staffing platform in Africa. Given a candidate profile/preferences and a list of active job postings, score how well EACH job matches the candidate from 0-100. Weigh role/profession relevance most heavily (a job unrelated to the candidate\'s profession should score low even if location/salary happen to fit), then location, salary fit, and employment type. Two jobs in different fields should essentially never tie unless they are genuinely equally relevant. IMPORTANT on salary: "minimum_acceptable_salary" is a FLOOR the candidate will accept, not a target — a job\'s salary_max at or above it is always a good fit, and a HIGHER salary is never a downside or a reason to lower the score; only a job whose salary_max falls below that floor is a salary mismatch. If a job\'s salary_min AND salary_max are BOTH null, the school simply did not disclose a salary — this is neutral, NOT a mismatch, and must never lower the score or appear in "reasons"/"missing" at all. IMPORTANT on "missing": it is shown to the candidate as "Missing: X — adding it may raise this match", so it must ONLY ever name something the CANDIDATE could personally add or change on their own profile (e.g. their salary expectation, a skill, a certification) — NEVER something about the job/school\'s own listing (an undisclosed salary, a vague description, etc. are the school\'s gap, not the candidate\'s, so they must never appear here). Use null for "missing" whenever there is nothing the candidate themselves could add. Return ONLY JSON: {"scores": [{"job_key": string, "score": integer 0-100, "reasons": [1-3 short strings, most important first], "missing": string|null}]} — exactly one entry per job_key given, any order.',
             user: json_encode(['candidate' => $profile, 'jobs' => $jobList]),
             maxTokens: 1800,
             candidateId: $candidate->id,
@@ -165,9 +165,14 @@ class JobMatchScorer
         if ($minSalary && $job['salary_max'] && (float) $job['salary_max'] >= (float) $minSalary) {
             $score += 15;
             $reasons[] = 'Salary range fits';
-        } elseif ($minSalary) {
+        } elseif ($minSalary && $job['salary_max']) {
+            // The job DID disclose a salary and it's below the candidate's
+            // floor — a genuine mismatch worth surfacing.
             $missing = 'Salary Expectation';
         }
+        // If the job has no salary_max at all, the school simply didn't
+        // disclose one — that's neutral, not a mismatch, so nothing is
+        // flagged as missing.
 
         if (empty($reasons)) {
             $reasons[] = 'Newly posted';

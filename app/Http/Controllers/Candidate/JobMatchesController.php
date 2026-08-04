@@ -88,7 +88,7 @@ class JobMatchesController extends Controller
     private function salaryLabel(?string $min, ?string $max): string
     {
         if (!$min && !$max) {
-            return 'Salary not disclosed';
+            return 'Competitive Salary';
         }
 
         $fmt = fn ($v) => number_format((float) $v, 0);
