@@ -207,7 +207,7 @@
                             </span>
                         </div>
                         <div class="flex items-center gap-3 mt-2.5">
-                            @if ($ed->status !== 'Verified')
+                            @if ($ed->status !== 'Verified' && config('services.verification_enabled'))
                                 <a href="{{ route('candidate.verification.show') }}" class="inline-block rounded-md bg-ttn-primary px-3.5 py-1.5 text-xs font-bold text-white">{{ __('profile.verify_now') }}</a>
                             @endif
                             <button @click="editing = true" type="button" class="text-[11.5px] font-bold text-ttn-primary-dark cursor-pointer">{{ __('common.edit') }}</button>
@@ -517,22 +517,24 @@
     </div>
 
     {{-- Verification --}}
-    <div id="verification" class="rounded-2xl border border-ttn-border bg-ttn-card overflow-hidden mb-4">
-        @foreach ($candidate->verificationItems()->with('verificationType')->get() as $item)
-            <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-4 border-b border-ttn-border last:border-b-0 flex-wrap">
-                <div>
-                    <div class="text-[13.5px] font-bold">{{ $item->verificationType->name }}</div>
-                    <div class="text-[11.5px] text-ttn-text2">{{ __('profile.method', ['method' => $item->method ?: '—']) }}</div>
+    @if (config('services.verification_enabled'))
+        <div id="verification" class="rounded-2xl border border-ttn-border bg-ttn-card overflow-hidden mb-4">
+            @foreach ($candidate->verificationItems()->with('verificationType')->get() as $item)
+                <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-4 border-b border-ttn-border last:border-b-0 flex-wrap">
+                    <div>
+                        <div class="text-[13.5px] font-bold">{{ $item->verificationType->name }}</div>
+                        <div class="text-[11.5px] text-ttn-text2">{{ __('profile.method', ['method' => $item->method ?: '—']) }}</div>
+                    </div>
+                    <div class="rounded-full px-3 py-1.5 text-xs font-bold {{ $item->status === \App\Services\Verification\VerificationStatus::VERIFIED ? 'bg-ttn-primary-light text-ttn-primary-dark' : 'bg-ttn-subtle text-ttn-text2' }}">
+                        {{ $item->status === \App\Services\Verification\VerificationStatus::VERIFIED ? __('common.verified') : \App\Services\Verification\VerificationStatus::label($item->status) }}
+                    </div>
                 </div>
-                <div class="rounded-full px-3 py-1.5 text-xs font-bold {{ $item->status === \App\Services\Verification\VerificationStatus::VERIFIED ? 'bg-ttn-primary-light text-ttn-primary-dark' : 'bg-ttn-subtle text-ttn-text2' }}">
-                    {{ $item->status === \App\Services\Verification\VerificationStatus::VERIFIED ? __('common.verified') : \App\Services\Verification\VerificationStatus::label($item->status) }}
+            @endforeach
+            @if ($candidate->verificationItems->isEmpty())
+                <div class="px-5 py-6 text-center text-[13px] text-ttn-text2">
+                    {{ __('profile.verification_soon') }}
                 </div>
-            </div>
-        @endforeach
-        @if ($candidate->verificationItems->isEmpty())
-            <div class="px-5 py-6 text-center text-[13px] text-ttn-text2">
-                {{ __('profile.verification_soon') }}
-            </div>
-        @endif
-    </div>
+            @endif
+        </div>
+    @endif
 </x-candidate-shell>

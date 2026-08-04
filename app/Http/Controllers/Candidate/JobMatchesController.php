@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Candidate;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
+use App\Services\AI\JobMatchScorer;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,13 +15,17 @@ class JobMatchesController extends Controller
     /** Free-tier candidates only see this many matches before the premium upsell. */
     private const FREE_MATCH_LIMIT = 3;
 
+    public function __construct(private readonly JobMatchScorer $matcher)
+    {
+    }
+
     public function index(): View
     {
         /** @var Candidate $candidate */
         $candidate = Auth::guard('candidate')->user();
 
-        $jobs = $this->fetchActiveJobs()
-            ->map(fn ($job) => $this->scoreJob($job, $candidate))
+        $jobs = $this->matcher->score($candidate, $this->fetchActiveJobs())
+            ->map(fn ($job) => $this->withDisplayFields($job))
             ->sortByDesc('match_score')
             ->values();
 
@@ -64,53 +69,16 @@ class JobMatchesController extends Controller
     }
 
     /**
-     * Rule-based match score + human-readable reasons, standing in for the
-     * AI-assisted reasoning until OpenAI quota/config is sorted out (see
-     * App\Services\AI\OpenAiClient) — this app never blocks core browsing
-     * on that dependency.
+     * Presentational fields only — actual match scoring/reasons come from
+     * JobMatchScorer (AI-based, with a rule-based fallback), not from here.
      */
-    private function scoreJob(array $job, Candidate $candidate): array
+    private function withDisplayFields(array $job): array
     {
-        $answers = $candidate->careerAnswersMap;
-        $reasons = [];
-        $missing = null;
-        $score = 40; // base score so every active job is at least visible
-
-        $professionTerms = array_filter([$candidate->profession, ...($job['department'] ? [$job['department']] : [])]);
-        if ($candidate->profession && (
-            str_contains(strtolower($job['title']), strtolower($candidate->profession))
-            || str_contains(strtolower((string) $job['department']), strtolower($candidate->profession))
-        )) {
-            $score += 30;
-            $reasons[] = "{$candidate->profession} role match";
-        }
-
-        $preferredCities = collect($answers['cities'] ?? []);
-        if ($job['location'] && $preferredCities->contains(fn ($city) => str_contains(strtolower($job['location']), strtolower($city)))) {
-            $score += 15;
-            $reasons[] = 'Preferred location';
-        }
-
-        $minSalary = $answers['salary'] ?? null;
-        if ($minSalary && $job['salary_max'] && (float) $job['salary_max'] >= (float) $minSalary) {
-            $score += 15;
-            $reasons[] = 'Salary range fits';
-        } elseif ($minSalary) {
-            $missing = 'Salary Expectation';
-        }
-
-        if (empty($reasons)) {
-            $reasons[] = 'Newly posted';
-        }
-
         $deadline = $job['application_deadline'] ? Carbon::parse($job['application_deadline']) : null;
         $deadlineDays = $deadline ? (int) floor(now()->diffInDays($deadline, false)) : null;
 
         return [
             ...$job,
-            'match_score' => min(99, $score),
-            'reasons' => $reasons,
-            'missing' => $missing,
             'posted_days_ago' => (int) floor(Carbon::parse($job['created_at'])->diffInDays(now())),
             'deadline_days' => $deadlineDays,
             'salary_label' => $this->salaryLabel($job['salary_min'], $job['salary_max']),

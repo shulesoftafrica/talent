@@ -7,7 +7,7 @@ return [
     'active_until' => 'Inatumika hadi :date.',
     'active' => 'Inatumika.',
     'complete_payment' => 'Kamilisha Malipo Yako',
-    'price_per_month' => ':amount / mwezi',
+    'price_per_month' => ':amount / mwaka',
     'ucn' => 'Nambari ya Udhibiti ya Kimataifa',
     'pay_stripe' => 'Lipa kwa Kadi (Stripe)',
     'pay_flutterwave' => 'Lipa kwa Flutterwave',
@@ -16,7 +16,7 @@ return [
         'Kocha wa Kazi wa AI', 'Wasifu wa Kitaaluma wa Umma', 'Wasifu wa Kitaaluma wa PDF', 'Upakiaji wa Kazi Usio na Kikomo',
         'Kazi Zinazolingana Zisizo na Kikomo', 'Uchambuzi wa Upungufu wa Ujuzi', 'Maandalizi ya Mahojiano', 'Ramani Binafsi ya Ujifunzaji',
     ],
-    'per_month' => '/mwezi',
+    'per_month' => '/mwaka',
     'upgrade' => 'Pandisha hadi Premium',
     'notify_me' => 'Nijulishe Itakapopatikana',
 ];

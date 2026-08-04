@@ -12,11 +12,13 @@ final class AiFeature
     public const CV_PARSE = 'cv_parse';
     public const PROFILE_REVIEW = 'profile_review';
     public const JOB_COACH = 'job_coach';
+    public const JOB_MATCH = 'job_match';
 
     public const LABELS = [
         self::CV_PARSE => 'CV Parsing',
         self::PROFILE_REVIEW => 'AI Profile Review',
         self::JOB_COACH => 'Job Coach',
+        self::JOB_MATCH => 'Job Match Scoring',
     ];
 
     public static function label(string $feature): string

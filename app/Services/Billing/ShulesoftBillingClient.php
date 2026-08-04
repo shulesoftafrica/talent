@@ -2,6 +2,7 @@
 
 namespace App\Services\Billing;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -9,15 +10,20 @@ use Illuminate\Support\Facades\Log;
  * Client for the remote Shulesoft Billing Platform, mirroring safarichat's
  * proven BillingService::createSubscriptionInvoice() /
  * BillingApiController::getWalletUCN() pattern — same platform, same
- * credentials (see config/services.php 'billing'), same request/response
+ * organization (org 1, "Shulesoft Company Limited"), same request/response
  * shapes. Creates an invoice, then extracts whichever payment options
  * (UCN / Stripe / Flutterwave) the platform returns for it.
+ *
+ * Auth: tries the OAuth client-credentials token (ShulesoftAuthService)
+ * first, falling back to the static 'billing.access_token' if OAuth isn't
+ * configured — see ShulesoftAuthService's docblock for why OAuth is the
+ * real path now.
  */
 class ShulesoftBillingClient
 {
     public function isConfigured(): bool
     {
-        return !empty(config('services.billing.access_token'));
+        return !empty(config('services.shulesoft_billing.client_id')) || !empty(config('services.billing.access_token'));
     }
 
     /**
@@ -106,13 +112,99 @@ class ShulesoftBillingClient
         return $result;
     }
 
+    private const PREMIUM_PRODUCT_CODE = 'talent-premium';
+    private const PREMIUM_PRODUCT_CACHE_KEY = 'talent_premium_product_price_plans';
+
+    /**
+     * Gets (or, on first call, creates) the "Talent Subscription" product on
+     * the billing platform and returns its two price plan ids — one per
+     * currency, since Tanzanian and international candidates are charged
+     * differently (see PremiumController). Mirrors safarichat's
+     * BillingApiController::createOrGetCreditsProduct() pattern exactly:
+     * usage/wallet product type (rate=1 so amount==quantity — this app
+     * never reads quantity/wallet balance back from the platform, since
+     * Candidate::premium_until is the actual source of truth for access,
+     * set locally by PaymentService::unlockPremium() once a webhook
+     * confirms payment). Result is cached forever; call
+     * clearPremiumProductCache() to force a re-check/re-create.
+     *
+     * @return array{tzs_price_plan_id:?int, usd_price_plan_id:?int}
+     */
+    public function getOrCreateTalentPremiumProduct(): array
+    {
+        $cached = Cache::get(self::PREMIUM_PRODUCT_CACHE_KEY);
+        if ($cached && $cached['tzs_price_plan_id'] && $cached['usd_price_plan_id']) {
+            return $cached;
+        }
+
+        $existing = $this->request('GET', '/products/' . self::PREMIUM_PRODUCT_CODE);
+        if ($existing['success']) {
+            $plans = $this->extractPricePlanIds($existing['data']['data'] ?? []);
+            if ($plans['tzs_price_plan_id'] && $plans['usd_price_plan_id']) {
+                Cache::forever(self::PREMIUM_PRODUCT_CACHE_KEY, $plans);
+                return $plans;
+            }
+        }
+
+        $currencyIds = config('services.shulesoft_billing.currency_ids', ['USD' => 1, 'TZS' => 2]);
+
+        $created = $this->request('POST', '/products', [
+            'organization_id' => (int) config('services.billing.organization_id', 1),
+            'product_type_id' => 3, // usage/wallet
+            'name' => 'Talent Subscription',
+            'product_code' => self::PREMIUM_PRODUCT_CODE,
+            'description' => 'ShuleSoft Talent Network — Premium annual subscription',
+            'unit' => 'Subscription',
+            'active' => true,
+            'price_plans' => [
+                ['name' => 'Talent Subscription — Tanzania (Annual)', 'currency_id' => $currencyIds['TZS'], 'rate' => 1],
+                ['name' => 'Talent Subscription — International (Annual)', 'currency_id' => $currencyIds['USD'], 'rate' => 1],
+            ],
+        ]);
+
+        if (!$created['success']) {
+            Log::error('ShulesoftBillingClient: failed to create Talent Subscription product', ['body' => $created['data']]);
+            return ['tzs_price_plan_id' => null, 'usd_price_plan_id' => null];
+        }
+
+        $plans = $this->extractPricePlanIds($created['data']['data'] ?? []);
+        if ($plans['tzs_price_plan_id'] && $plans['usd_price_plan_id']) {
+            Cache::forever(self::PREMIUM_PRODUCT_CACHE_KEY, $plans);
+        }
+
+        return $plans;
+    }
+
+    public function clearPremiumProductCache(): void
+    {
+        Cache::forget(self::PREMIUM_PRODUCT_CACHE_KEY);
+    }
+
+    /**
+     * @return array{tzs_price_plan_id:?int, usd_price_plan_id:?int}
+     */
+    private function extractPricePlanIds(array $productData): array
+    {
+        $result = ['tzs_price_plan_id' => null, 'usd_price_plan_id' => null];
+
+        foreach ($productData['price_plans'] ?? [] as $plan) {
+            match ($plan['currency'] ?? null) {
+                'TZS' => $result['tzs_price_plan_id'] = $plan['id'] ?? null,
+                'USD' => $result['usd_price_plan_id'] = $plan['id'] ?? null,
+                default => null,
+            };
+        }
+
+        return $result;
+    }
+
     /**
      * @return array{success:bool,data:?array,status:?int,error:?string}
      */
     private function request(string $method, string $path, array $payload = []): array
     {
         $baseUrl = rtrim(config('services.billing.api_url'), '/');
-        $token = config('services.billing.access_token');
+        $token = ShulesoftAuthService::getAccessToken() ?? config('services.billing.access_token');
 
         try {
             $response = Http::withToken($token)

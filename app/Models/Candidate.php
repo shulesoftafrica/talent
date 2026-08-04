@@ -10,11 +10,18 @@ use Illuminate\Support\Str;
 
 class Candidate extends Authenticatable
 {
+    /**
+     * constant.refer_countries.id for Tanzania — same id CareerBuilderDataService
+     * already treats as the default/home market. Used to decide local (TZS)
+     * vs international (USD) pricing.
+     */
+    public const TANZANIA_COUNTRY_ID = 1;
+
     protected $fillable = [
         'full_name', 'email', 'phone', 'avatar_path', 'cv_path', 'cv_raw_text',
         'cv_parsed_at', 'dob', 'sex', 'country_id', 'current_location', 'profession',
         'current_employer', 'current_employer_verified', 'availability',
-        'open_to_opportunities', 'is_premium', 'premium_until', 'trust_score',
+        'open_to_opportunities', 'is_premium', 'premium_until', 'billing_ucn', 'trust_score',
         'profile_strength', 'career_score', 'status',
     ];
 
@@ -123,6 +130,11 @@ class Candidate extends Authenticatable
     public function aiUsageLogs(): HasMany
     {
         return $this->hasMany(AiUsageLog::class);
+    }
+
+    public function isInTanzania(): bool
+    {
+        return $this->country_id === self::TANZANIA_COUNTRY_ID;
     }
 
     /**

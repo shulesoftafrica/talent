@@ -63,6 +63,7 @@
     <button @click="$store.careerReadiness.show()" class="w-full rounded-lg bg-ttn-primary px-4 py-2.5 text-xs font-bold text-white cursor-pointer">{{ __('rail.view_growth_plan') }}</button>
 </div>
 
+@if (config('services.verification_enabled'))
 <div class="rounded-2xl border border-ttn-border bg-ttn-card p-5">
     <div class="text-xs font-bold text-ttn-text2 uppercase tracking-wide mb-3">{{ __('rail.verification_progress') }}</div>
     <div class="flex flex-col gap-1">
@@ -82,6 +83,7 @@
     </div>
     <div class="text-[11px] text-ttn-text2 mt-2.5">{{ __('rail.verification_footer') }}</div>
 </div>
+@endif
 
 <div x-data x-show="$store.careerReadiness.open" x-cloak
      @click.self="$store.careerReadiness.close()"

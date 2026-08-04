@@ -87,6 +87,15 @@ class PaymentService
             'billing_flutterwave_link' => $gateways['flutterwave_link'],
         ])->save();
 
+        // For a wallet/usage product, the platform ties the UCN to the
+        // candidate's own customer record, not to this one invoice — it's
+        // the same number on every purchase they make. Cache it on the
+        // candidate so it's available as a stable reference without
+        // depending on a fresh API call each time.
+        if ($gateways['ucn'] && $candidate->billing_ucn !== $gateways['ucn']) {
+            $candidate->forceFill(['billing_ucn' => $gateways['ucn']])->save();
+        }
+
         return $order;
     }
 
@@ -123,7 +132,7 @@ class PaymentService
 
     private function unlockPremium(VerificationOrder $order): void
     {
-        $months = (int) ($order->meta['months'] ?? 1);
+        $years = (int) ($order->meta['years'] ?? 1);
 
         /** @var Candidate $candidate */
         $candidate = $order->candidate;
@@ -136,7 +145,7 @@ class PaymentService
 
         $candidate->forceFill([
             'is_premium' => true,
-            'premium_until' => $base->copy()->addMonths($months),
+            'premium_until' => $base->copy()->addYears($years),
         ])->save();
     }
 

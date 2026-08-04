@@ -5,14 +5,17 @@ namespace App\Http\Controllers\Candidate;
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Services\Billing\PaymentService;
+use App\Services\Billing\ShulesoftBillingClient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class PremiumController extends Controller
 {
-    public function __construct(private readonly PaymentService $payments)
-    {
+    public function __construct(
+        private readonly PaymentService $payments,
+        private readonly ShulesoftBillingClient $billing,
+    ) {
     }
 
     public function show(): View
@@ -21,10 +24,12 @@ class PremiumController extends Controller
         $candidate = Auth::guard('candidate')->user();
 
         $pendingOrder = $candidate->verificationOrders()->where('kind', 'premium')->where('status', 'pending')->latest()->first();
+        [$price, $currency] = $this->priceFor($candidate);
 
         return view('candidate.premium', [
             'candidate' => $candidate,
-            'price' => (float) config('services.billing.premium_monthly_price', 9.99),
+            'price' => $price,
+            'currency' => $currency,
             'pendingOrder' => $pendingOrder,
         ]);
     }
@@ -39,18 +44,23 @@ class PremiumController extends Controller
     {
         /** @var Candidate $candidate */
         $candidate = Auth::guard('candidate')->user();
-        $price = (float) config('services.billing.premium_monthly_price', 9.99);
 
         if ($candidate->is_premium) {
             return redirect()->route('candidate.premium.show')->with('status', 'You already have Premium.');
         }
 
+        [$price, $currency] = $this->priceFor($candidate);
+        $plans = $this->billing->getOrCreateTalentPremiumProduct();
+        $pricePlanId = $currency === 'TZS' ? $plans['tzs_price_plan_id'] : $plans['usd_price_plan_id'];
+
         $order = $this->payments->purchase(
             candidate: $candidate,
             product: 'premium',
             amount: $price,
-            description: 'ShuleSoft Talent Network — Premium Subscription',
-            meta: ['months' => 1],
+            description: 'ShuleSoft Talent Network — Premium Subscription (Annual)',
+            meta: ['years' => 1],
+            currency: $currency,
+            pricePlanId: $pricePlanId,
         );
 
         if ($order->status === 'failed') {
@@ -58,5 +68,15 @@ class PremiumController extends Controller
         }
 
         return redirect()->route('candidate.payment.show', $order);
+    }
+
+    /**
+     * @return array{0: float, 1: string} [amount, currency]
+     */
+    private function priceFor(Candidate $candidate): array
+    {
+        return $candidate->isInTanzania()
+            ? [(float) config('services.billing.premium_price_tzs', 20000), 'TZS']
+            : [(float) config('services.billing.premium_price_usd', 9.90), 'USD'];
     }
 }

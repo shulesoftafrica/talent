@@ -92,10 +92,23 @@
                         <div>
                             <label
                                 class="block cursor-pointer rounded-xl border-2 border-dashed border-ttn-primary bg-ttn-subtle p-5 sm:p-6 text-center mb-3.5"
-                                :class="cvUploading && 'opacity-60 pointer-events-none'"
+                                :class="cvUploading && 'pointer-events-none'"
                             >
-                                <div class="text-[13px] font-bold text-ttn-text2 mb-3.5" x-text="cvUploading ? T.cv_reading : T.cv_drop"></div>
-                                <span class="inline-block rounded-lg bg-ttn-primary px-6 sm:px-7 py-3 text-sm font-bold text-white">{{ __('landing.cv_upload') }}</span>
+                                <template x-if="cvUploading">
+                                    <div class="flex flex-col items-center gap-3">
+                                        <svg class="h-7 w-7 animate-spin text-ttn-primary" viewBox="0 0 24 24" fill="none">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                        </svg>
+                                        <div class="text-[13px] font-bold text-ttn-text2">{{ __('landing.cv_reading') }}</div>
+                                    </div>
+                                </template>
+                                <template x-if="!cvUploading">
+                                    <div>
+                                        <div class="text-[13px] font-bold text-ttn-text2 mb-3.5">{{ __('landing.cv_drop') }}</div>
+                                        <span class="inline-block rounded-lg bg-ttn-primary px-6 sm:px-7 py-3 text-sm font-bold text-white">{{ __('landing.cv_upload') }}</span>
+                                    </div>
+                                </template>
                                 <input type="file" accept=".pdf,.docx,.doc" class="hidden" @change="uploadCv($event)">
                             </label>
                             <p class="text-xs text-ttn-red mb-2" x-show="cvError" x-text="cvError" x-cloak></p>

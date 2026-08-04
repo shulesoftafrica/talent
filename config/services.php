@@ -2,6 +2,11 @@
 
 return [
 
+    // Global kill-switch for the verification module — every verification
+    // nav item/section/CTA checks this instead of assuming the feature is
+    // live. Flip VERIFICATION_ENABLED=1 in .env when the business is ready.
+    'verification_enabled' => (bool) env('VERIFICATION_ENABLED', false),
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -52,7 +57,9 @@ return [
     // payment order row). Add a new ENV var + line here whenever a new paid
     // feature is introduced — until its ID is set, PaymentService::purchase()
     // degrades gracefully (order created with status=awaiting_configuration,
-    // no invoice call) instead of erroring.
+    // no invoice call) instead of erroring. Premium doesn't use this generic
+    // single-ID lookup — it has two price plans (TZS/USD), resolved by
+    // ShulesoftBillingClient::getOrCreateTalentPremiumProduct() instead.
     'billing' => [
         'api_url' => env('BILLING_API_URL', 'https://api.safaribank.africa/api/v1'),
         'access_token' => env('BILLING_ACCESS_TOKEN'),
@@ -62,13 +69,32 @@ return [
 
         'price_plans' => [
             'verification' => env('BILLING_VERIFICATION_PRICE_PLAN_ID'),
-            'premium' => env('BILLING_PREMIUM_PRICE_PLAN_ID'),
         ],
 
-        // Placeholder monthly price — not a confirmed business figure, just
-        // enough for the checkout flow to be complete and testable; confirm
-        // the real price before this goes live.
-        'premium_monthly_price' => env('BILLING_PREMIUM_MONTHLY_PRICE', 9.99),
+        // Annual price — Tanzanian candidates in TZS, everyone else in USD.
+        // See Candidate::isInTanzania() and PremiumController.
+        'premium_price_usd' => env('BILLING_PREMIUM_PRICE_USD', 9.90),
+        'premium_price_tzs' => env('BILLING_PREMIUM_PRICE_TZS', 20000),
+    ],
+
+    // OAuth path for the same Shulesoft Billing Platform above — needed
+    // because the static 'billing.access_token' pointed at a
+    // personal_access_tokens row that no longer exists (confirmed via
+    // direct DB read). Uses a pre-provisioned client (see the platform's
+    // own dashboard, org "Shulesoft Company Limited" — Organization →
+    // API Credentials); ShulesoftBillingClient tries this first and falls
+    // back to the static token if it's ever unavailable.
+    'shulesoft_billing' => [
+        'api_url' => env('SHULESOFT_API_URL', 'https://api.safaribank.africa/api/v1'),
+        'client_id' => env('SHULESOFT_CLIENT_ID'),
+        'client_secret' => env('SHULESOFT_CLIENT_SECRET'),
+        'organization_id' => env('BILLING_ORGANIZATION_ID', '1'),
+        'timeout' => env('BILLING_API_TIMEOUT', 30),
+        'connect_timeout' => env('BILLING_API_CONNECT_TIMEOUT', 5),
+
+        // Currency ids on this platform (confirmed via billing.currencies —
+        // NOT what the platform's own example docs implied): 1 = USD, 2 = TZS.
+        'currency_ids' => ['USD' => 1, 'TZS' => 2],
     ],
 
     // Academy LMS — base URL used to deep-link recommended courses from the

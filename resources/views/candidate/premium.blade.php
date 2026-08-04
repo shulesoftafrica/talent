@@ -35,7 +35,7 @@
                 @endforeach
             </div>
             <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div class="font-display text-2xl font-extrabold">${{ number_format($price, 2) }}<span class="text-xs font-semibold opacity-70">{{ __('premium.per_month') }}</span></div>
+                <div class="font-display text-2xl font-extrabold">{{ $currency === 'TZS' ? 'TZS ' . number_format($price, 0) : '$' . number_format($price, 2) }}<span class="text-xs font-semibold opacity-70">{{ __('premium.per_month') }}</span></div>
                 @if ($pendingOrder)
                     <a href="{{ route('candidate.payment.show', $pendingOrder) }}" class="rounded-lg bg-ttn-amber px-5 py-2.5 text-[13px] font-bold cursor-pointer whitespace-nowrap" style="color: var(--color-ttn-navy)">
                         {{ __('payment.continue') }}

@@ -141,16 +141,22 @@ class AiCoachService
     {
         $gaps = [];
 
-        if (!$candidate->verificationItems()->where('status', VerificationStatus::VERIFIED)->exists()) {
-            $gaps[] = ['label' => 'Verify your Identity', 'impact' => '+12%'];
-        }
+        // Verification is behind a global kill-switch (VERIFICATION_ENABLED)
+        // until the business launches it — suggesting these gaps while the
+        // feature is hidden everywhere else would send candidates to a dead
+        // end, so they're only ever offered once it's live.
+        if (config('services.verification_enabled')) {
+            if (!$candidate->verificationItems()->where('status', VerificationStatus::VERIFIED)->exists()) {
+                $gaps[] = ['label' => 'Verify your Identity', 'impact' => '+12%'];
+            }
 
-        if (!$candidate->educations()->where('status', 'Verified')->exists() && $candidate->educations()->exists()) {
-            $gaps[] = ['label' => 'Verify your Education', 'impact' => '+8%'];
-        }
+            if (!$candidate->educations()->where('status', 'Verified')->exists() && $candidate->educations()->exists()) {
+                $gaps[] = ['label' => 'Verify your Education', 'impact' => '+8%'];
+            }
 
-        if (!$candidate->experiences()->where('is_verified', true)->exists() && $candidate->experiences()->exists()) {
-            $gaps[] = ['label' => 'Verify your Employment History', 'impact' => '+6%'];
+            if (!$candidate->experiences()->where('is_verified', true)->exists() && $candidate->experiences()->exists()) {
+                $gaps[] = ['label' => 'Verify your Employment History', 'impact' => '+6%'];
+            }
         }
 
         if ($candidate->portfolioItems()->count() === 0) {

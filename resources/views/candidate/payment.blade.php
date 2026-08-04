@@ -24,7 +24,7 @@
             </div>
             <div class="flex justify-between gap-3">
                 <span class="text-ttn-text2">{{ __('payment.amount') }}</span>
-                <span class="font-bold">{{ $order->currency }} {{ number_format($order->total_amount, 2) }}</span>
+                <span class="font-bold">{{ $order->currency }} {{ number_format($order->total_amount, $order->currency === 'TZS' ? 0 : 2) }}</span>
             </div>
             <div class="flex justify-between gap-3">
                 <span class="text-ttn-text2">{{ __('payment.invoice_number') }}</span>
@@ -51,7 +51,7 @@
                         <div class="rounded-lg bg-ttn-subtle px-4 py-3">
                             <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-text2 mb-1">{{ __('payment.ucn_label') }}</div>
                             <div class="font-display text-lg font-bold mb-1">{{ $order->billing_ucn }}</div>
-                            <div class="text-[11.5px] text-ttn-text2">{{ __('payment.ucn_amount', ['amount' => $order->currency . ' ' . number_format($order->total_amount, 2)]) }}</div>
+                            <div class="text-[11.5px] text-ttn-text2">{{ __('payment.ucn_amount', ['amount' => $order->currency . ' ' . number_format($order->total_amount, $order->currency === 'TZS' ? 0 : 2)]) }}</div>
                             <div class="text-[11.5px] text-ttn-text2 mt-1.5">{{ __('payment.ucn_instructions') }}</div>
                         </div>
                     @endif
