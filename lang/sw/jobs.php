@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'greeting' => 'Habari za asubuhi, :name',
+    'greeting' => 'Habari, :name',
     'subtitle' => 'Kazi :count zinazolingana nawe leo',
     'unlock_premium' => '🔒 Fungua Premium',
     'unlock_premium_desc' => 'Ona kazi zote zinazolingana · Kocha wa Kazi wa AI · Uchambuzi wa Upungufu wa Ujuzi',

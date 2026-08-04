@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'greeting' => 'Good morning, :name',
+    'greeting' => 'Hello, :name',
     'subtitle' => ':count jobs matched for you today',
     'unlock_premium' => '🔒 Unlock Premium',
     'unlock_premium_desc' => 'See all matching jobs · AI Career Coach · Skills Gap Analysis',
