@@ -13,5 +13,6 @@ return [
     'ops_dashboard' => 'Dashibodi',
     'ops_queue' => 'Foleni',
     'ops_ai_usage' => 'Matumizi ya AI',
+    'ops_analytics' => 'Takwimu',
     'ops_sign_out' => 'Toka (:name)',
 ];

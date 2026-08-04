@@ -13,5 +13,6 @@ return [
     'ops_dashboard' => 'Dashboard',
     'ops_queue' => 'Queue',
     'ops_ai_usage' => 'AI Usage',
+    'ops_analytics' => 'Analytics',
     'ops_sign_out' => 'Sign out (:name)',
 ];

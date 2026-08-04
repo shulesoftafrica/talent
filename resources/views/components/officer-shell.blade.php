@@ -49,6 +49,10 @@
                    class="rounded-lg px-3 py-2.5 text-[13.5px] font-semibold {{ $active === 'ai-usage' ? 'bg-ttn-amber text-ttn-navy' : 'text-white/75 hover:bg-white/10' }}">
                     🤖 {{ __('nav.ops_ai_usage') }}
                 </a>
+                <a href="{{ route('officer.analytics') }}"
+                   class="rounded-lg px-3 py-2.5 text-[13.5px] font-semibold {{ $active === 'analytics' ? 'bg-ttn-amber text-ttn-navy' : 'text-white/75 hover:bg-white/10' }}">
+                    📈 {{ __('nav.ops_analytics') }}
+                </a>
             </nav>
 
             <div class="mt-auto flex flex-col gap-3 border-t border-white/15 pt-3">
