@@ -57,7 +57,7 @@ class AiCoachService
         $missingGap = $this->profileGaps($candidate)[0]['label'] ?? null;
 
         $ai = $this->openAi->chatJson(
-            system: 'You are a career coach for a school-staffing platform in Africa, helping a candidate prepare for a specific job. Return JSON {"topics": [{"title": string, "body": string}]} with exactly 4 short, concrete, encouraging topics covering: interview preparation, any missing profile item, a relevant certification suggestion, and one piece of career advice for this role. Base it only on the job and candidate info given.',
+            system: 'You are a career coach for a school-staffing platform in Africa, helping a candidate prepare for a specific job. Return JSON {"topics": [{"title": string, "body": string}]} with exactly 4 short, concrete, encouraging topics covering: interview preparation, any missing profile item, a relevant certification suggestion, and one piece of career advice for this role. Base it only on the job and candidate info given. IMPORTANT: the identity of the specific school/employer hiring for this role is intentionally hidden from the candidate until they apply, and you are never told it either — never name, invent, or guess a company or school name (e.g. do not suggest researching "ShuleSoft" or any other specific organization). Always refer to the employer generically as "the school" or "this school".',
             user: json_encode(['job_title' => $job->title, 'department' => $job->department, 'location' => $job->location, 'candidate_profession' => $candidate->profession, 'missing_gap' => $missingGap]),
             candidateId: $candidate->id,
             feature: AiFeature::JOB_COACH,
