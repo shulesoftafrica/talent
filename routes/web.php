@@ -21,6 +21,7 @@ use App\Http\Controllers\Candidate\PremiumController;
 use App\Http\Controllers\Candidate\ProfileItemController;
 use App\Http\Controllers\Candidate\TrainingController;
 use App\Http\Controllers\Candidate\VerificationCheckoutController;
+use App\Http\Controllers\ActivityPingController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\ReferenceController;
@@ -38,6 +39,8 @@ Route::get('/', [LandingController::class, 'index'])->name('landing');
 Route::get('/lang/{locale}', [LanguageController::class, 'switch'])->name('language.switch');
 
 Route::get('/reference/cities', [ReferenceController::class, 'cities'])->name('reference.cities');
+
+Route::post('/activity/ping', [ActivityPingController::class, 'ping'])->name('activity.ping');
 
 Route::post('/webhooks/billing', [BillingWebhookController::class, 'handle'])->name('webhooks.billing');
 

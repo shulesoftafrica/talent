@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\TrackUserActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -24,9 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // External callback from the Shulesoft Billing Platform — no
         // session/CSRF token to send, verified instead via the shared
         // webhook secret header inside BillingWebhookController.
-        $middleware->validateCsrfTokens(except: ['webhooks/billing']);
+        $middleware->validateCsrfTokens(except: ['webhooks/billing', 'activity/ping']);
 
-        $middleware->web(append: [SetLocale::class]);
+        $middleware->web(append: [SetLocale::class, TrackUserActivity::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
