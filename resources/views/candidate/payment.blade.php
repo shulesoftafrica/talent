@@ -41,25 +41,56 @@
 
     @if ($order->status !== 'paid')
         <div class="rounded-2xl border border-ttn-border bg-ttn-card p-4 sm:p-6 mb-4">
-            <div class="font-display text-[15px] font-bold mb-3">{{ __('payment.methods') }}</div>
+            <div class="font-display text-[15px] font-bold mb-1">{{ __('payment.methods') }}</div>
 
             @if (!$order->billing_ucn && !$order->billing_stripe_link && !$order->billing_flutterwave_link)
                 <div class="text-[13px] text-ttn-text2">{{ __('payment.preparing') }}</div>
             @else
-                <div class="flex flex-col gap-2.5">
+                <div class="text-[12.5px] text-ttn-text2 mb-4">{{ __('payment.methods_intro') }}</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5" x-data="{ copied: false }">
                     @if ($order->billing_ucn)
-                        <div class="rounded-lg bg-ttn-subtle px-4 py-3">
-                            <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-text2 mb-1">{{ __('payment.ucn_label') }}</div>
-                            <div class="font-display text-lg font-bold mb-1">{{ $order->billing_ucn }}</div>
+                        <div class="rounded-xl border border-ttn-border p-4 flex flex-col items-center text-center">
+                            <div class="text-2xl mb-2">🏦</div>
+                            <div class="text-[13.5px] font-bold mb-0.5">{{ __('payment.ucn_title') }}</div>
+                            <div class="text-[11.5px] text-ttn-text2 mb-3.5">{{ __('payment.ucn_subtitle') }}</div>
+                            <div class="w-full rounded-lg border-2 border-dashed border-ttn-primary bg-ttn-primary-light px-3 py-3 mb-3.5">
+                                <div class="text-[10.5px] font-semibold text-ttn-text2 mb-1">{{ __('payment.ucn_send_to') }}</div>
+                                <div class="font-display text-lg font-extrabold text-ttn-primary-dark tracking-wide mb-2" x-ref="ucnNumber">{{ $order->billing_ucn }}</div>
+                                <button
+                                    type="button"
+                                    @click="navigator.clipboard.writeText('{{ $order->billing_ucn }}'); copied = true; setTimeout(() => copied = false, 2000)"
+                                    class="rounded-md bg-ttn-primary px-3 py-1.5 text-[11.5px] font-bold text-white cursor-pointer"
+                                >
+                                    <span x-show="!copied">📋 {{ __('payment.ucn_copy') }}</span>
+                                    <span x-show="copied" x-cloak>✓ {{ __('payment.ucn_copied') }}</span>
+                                </button>
+                            </div>
                             <div class="text-[11.5px] text-ttn-text2">{{ __('payment.ucn_amount', ['amount' => $order->currency . ' ' . number_format($order->total_amount, $order->currency === 'TZS' ? 0 : 2)]) }}</div>
-                            <div class="text-[11.5px] text-ttn-text2 mt-1.5">{{ __('payment.ucn_instructions') }}</div>
                         </div>
                     @endif
                     @if ($order->billing_stripe_link)
-                        <a href="{{ $order->billing_stripe_link }}" target="_blank" rel="noopener" class="rounded-lg bg-ttn-primary px-4 py-3 text-center text-sm font-bold text-white">{{ __('payment.pay_stripe') }}</a>
+                        <div class="rounded-xl border border-ttn-border p-4 flex flex-col items-center text-center">
+                            <div class="text-2xl mb-2">💳</div>
+                            <div class="text-[13.5px] font-bold mb-0.5">{{ __('payment.stripe_title') }}</div>
+                            <div class="text-[11.5px] text-ttn-text2 mb-3.5">{{ __('payment.stripe_subtitle') }}</div>
+                            <div class="w-full rounded-lg bg-ttn-subtle px-3 py-3 mb-3.5">
+                                <div class="text-[10.5px] font-semibold text-ttn-text2 mb-1">{{ __('payment.amount_label') }}</div>
+                                <div class="font-display text-base font-extrabold">{{ $order->currency }} {{ number_format($order->total_amount, $order->currency === 'TZS' ? 0 : 2) }}</div>
+                            </div>
+                            <a href="{{ $order->billing_stripe_link }}" target="_blank" rel="noopener" class="w-full rounded-lg bg-ttn-primary px-4 py-2.5 text-center text-[13px] font-bold text-white">{{ __('payment.stripe_cta') }}</a>
+                        </div>
                     @endif
                     @if ($order->billing_flutterwave_link)
-                        <a href="{{ $order->billing_flutterwave_link }}" target="_blank" rel="noopener" class="rounded-lg border border-ttn-border px-4 py-3 text-center text-sm font-bold text-ttn-text2">{{ __('payment.pay_flutterwave') }}</a>
+                        <div class="rounded-xl border border-ttn-border p-4 flex flex-col items-center text-center">
+                            <div class="text-2xl mb-2">📱</div>
+                            <div class="text-[13.5px] font-bold mb-0.5">{{ __('payment.flutterwave_title') }}</div>
+                            <div class="text-[11.5px] text-ttn-text2 mb-3.5">{{ __('payment.flutterwave_subtitle') }}</div>
+                            <div class="w-full rounded-lg bg-ttn-subtle px-3 py-3 mb-3.5">
+                                <div class="text-[10.5px] font-semibold text-ttn-text2 mb-1">{{ __('payment.amount_label') }}</div>
+                                <div class="font-display text-base font-extrabold">{{ $order->currency }} {{ number_format($order->total_amount, $order->currency === 'TZS' ? 0 : 2) }}</div>
+                            </div>
+                            <a href="{{ $order->billing_flutterwave_link }}" target="_blank" rel="noopener" class="w-full rounded-lg bg-ttn-primary px-4 py-2.5 text-center text-[13px] font-bold text-white">{{ __('payment.flutterwave_cta') }}</a>
+                        </div>
                     @endif
                 </div>
             @endif
