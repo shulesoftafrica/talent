@@ -3,32 +3,36 @@
 namespace App\Services\Notifications;
 
 use App\Models\CandidateOtp;
-use App\Services\WhatsApp\MetaWhatsAppService;
 
 /**
  * Generates, stores, and delivers OTP codes for candidate phone/email
- * verification. Email + SMS go through the Unified Notification Client;
- * WhatsApp goes through the direct Meta Cloud API client instead, per
- * product direction (see MetaWhatsAppService).
+ * verification — both channels now go through the single Unified
+ * Notification Client. When the identifier is a phone number, WhatsApp
+ * (official Meta channel, via the notification service) is the primary
+ * delivery — a copy also goes to the candidate's email when one is known
+ * (e.g. parsed from their CV), for reach in case WhatsApp delivery fails
+ * or they don't check it. SMS is intentionally not used for now.
  */
 class OtpService
 {
     private const CODE_TTL_MINUTES = 5;
     private const MAX_ATTEMPTS = 5;
 
-    public function __construct(
-        private readonly UnifiedNotificationClient $notifications,
-        private readonly MetaWhatsAppService $whatsApp,
-    ) {
+    public function __construct(private readonly UnifiedNotificationClient $notifications)
+    {
     }
 
     /**
      * @param string $purpose login|verify_phone|verify_email
+     * @param string|null $candidateEmail When $phoneOrEmail is a phone number, an
+     *                     email address to also send the code to (e.g. from the
+     *                     candidate's CV or saved profile). Ignored when
+     *                     $phoneOrEmail is itself an email — nothing to add.
      */
-    public function send(string $phoneOrEmail, string $purpose = 'login'): CandidateOtp
+    public function send(string $phoneOrEmail, string $purpose = 'login', ?string $candidateEmail = null): CandidateOtp
     {
         $isEmail = str_contains($phoneOrEmail, '@');
-        $channel = $isEmail ? 'email' : 'sms+whatsapp';
+        $channel = $isEmail ? 'email' : 'whatsapp';
 
         $code = (string) random_int(100000, 999999);
 
@@ -40,14 +44,14 @@ class OtpService
             'expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES),
         ]);
 
-        $this->deliver($phoneOrEmail, $code, $isEmail);
+        $this->deliver($phoneOrEmail, $code, $isEmail, $candidateEmail);
 
         return $otp;
     }
 
-    public function resend(string $phoneOrEmail, string $purpose = 'login'): CandidateOtp
+    public function resend(string $phoneOrEmail, string $purpose = 'login', ?string $candidateEmail = null): CandidateOtp
     {
-        return $this->send($phoneOrEmail, $purpose);
+        return $this->send($phoneOrEmail, $purpose, $candidateEmail);
     }
 
     /**
@@ -86,33 +90,40 @@ class OtpService
     }
 
     /**
-     * Email OTP goes out over the Unified Notification Client. Phone OTP goes
-     * out over BOTH SMS (Unified Notification Client) and WhatsApp (direct
-     * Meta Cloud API, per product direction) with the same code, for reach —
-     * each channel fails independently without blocking the other.
+     * If the identifier is an email, that's the only channel. If it's a
+     * phone, WhatsApp (official) is primary and a copy also goes to the
+     * candidate's known email, if any — each channel fails independently
+     * without blocking the other.
      */
-    private function deliver(string $phoneOrEmail, string $code, bool $isEmail): void
+    private function deliver(string $phoneOrEmail, string $code, bool $isEmail, ?string $candidateEmail): void
     {
         $message = "Your ShuleSoft Talent Network verification code is: {$code}. It expires in " . self::CODE_TTL_MINUTES . ' minutes.';
 
         if ($isEmail) {
-            $this->notifications->send([
-                'schema_name' => 'talent',
-                'channel' => 'email',
-                'to' => $phoneOrEmail,
-                'subject' => 'Your ShuleSoft Talent Network verification code',
-                'message' => $message,
-            ]);
+            $this->sendEmail($phoneOrEmail, $message);
+
             return;
         }
 
         $this->notifications->send([
-            'schema_name' => 'talent',
-            'channel' => 'sms',
+            'channel' => 'whatsapp',
             'to' => $phoneOrEmail,
             'message' => $message,
+            'type' => 'official',
         ]);
 
-        $this->whatsApp->sendOtpTemplate($phoneOrEmail, $code);
+        if ($candidateEmail) {
+            $this->sendEmail($candidateEmail, $message);
+        }
+    }
+
+    private function sendEmail(string $to, string $message): void
+    {
+        $this->notifications->send([
+            'channel' => 'email',
+            'to' => $to,
+            'subject' => 'Your ShuleSoft Talent Network verification code',
+            'message' => $message,
+        ]);
     }
 }

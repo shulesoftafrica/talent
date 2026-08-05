@@ -40,12 +40,13 @@ return [
         ],
     ],
 
-    // Multi-channel (email/SMS) sender used by App\Services\Notifications\UnifiedNotificationClient.
-    // Shared with shulesoft_newversion — see https://notifications.shulesoft.africa/docs/getting-started
+    // Single multi-channel (email/SMS/WhatsApp) sender used by
+    // App\Services\Notifications\UnifiedNotificationClient — one endpoint,
+    // one JSON object per send. See https://notifications.shulesoft.africa/docs/getting-started
     'notification' => [
         'base_url' => env('NOTIFICATION_BASE_URL', 'https://notifications.shulesoft.africa'),
-        'api_token' => env('NOTIFICATION_API_TOKEN'),
-        'bearer_token' => env('UNIFIED_API_BEARER_TOKEN'),
+        'bearer_token' => env('NOTIFICATION_BEARER_TOKEN'),
+        'schema_name' => env('NOTIFICATION_SCHEMA_NAME', 'talent'),
     ],
 
     // Shulesoft Billing Platform — same remote service + credentials

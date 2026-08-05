@@ -38,7 +38,7 @@ class OtpController extends Controller
             ], 422);
         }
 
-        $this->otp->send($data['phone_or_email'], $data['purpose']);
+        $this->otp->send($data['phone_or_email'], $data['purpose'], $this->resolveCandidateEmail($request, $data['phone_or_email'], $data['purpose']));
 
         return response()->json(['success' => true]);
     }
@@ -50,9 +50,28 @@ class OtpController extends Controller
             'purpose' => ['required', Rule::in(['login', 'signup'])],
         ]);
 
-        $this->otp->resend($data['phone_or_email'], $data['purpose']);
+        $this->otp->resend($data['phone_or_email'], $data['purpose'], $this->resolveCandidateEmail($request, $data['phone_or_email'], $data['purpose']));
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * When the OTP is going out over WhatsApp (identifier is a phone
+     * number), also send a copy to the candidate's email if one is known —
+     * from the CV just parsed during signup, or already saved on their
+     * profile for an existing candidate logging in.
+     */
+    private function resolveCandidateEmail(Request $request, string $identifier, string $purpose): ?string
+    {
+        if (str_contains($identifier, '@')) {
+            return null;
+        }
+
+        if ($purpose === 'signup') {
+            return $request->session()->get('onboarding.parsed.email');
+        }
+
+        return $this->findCandidateByIdentifier($identifier)?->email;
     }
 
     public function verify(Request $request): JsonResponse
