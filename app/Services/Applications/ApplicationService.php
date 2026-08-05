@@ -122,7 +122,15 @@ class ApplicationService
         $score = 30;
         $why = [];
 
-        if ($candidate->verificationItems()->where('status', VerificationStatus::VERIFIED)->exists()) {
+        // Verification is behind a global kill-switch (VERIFICATION_ENABLED)
+        // until the business launches it — see AiCoachService::profileGaps()
+        // for the same gating. No candidate can ever have a verified item
+        // while it's off, so scoring/suggesting on it would just be a
+        // permanent, unfixable ceiling and a dead-end "Missing" suggestion.
+        $verificationEnabled = config('services.verification_enabled');
+        $isVerified = $verificationEnabled && $candidate->verificationItems()->where('status', VerificationStatus::VERIFIED)->exists();
+
+        if ($isVerified) {
             $score += 20;
             $why[] = 'Verified Identity';
         }
@@ -143,7 +151,7 @@ class ApplicationService
         }
 
         $missing = match (true) {
-            !$candidate->verificationItems()->where('status', VerificationStatus::VERIFIED)->exists() => 'Identity Verification',
+            $verificationEnabled && !$isVerified => 'Identity Verification',
             !$candidate->experiences()->exists() => 'Work Experience',
             !$candidate->educations()->exists() => 'Education',
             default => null,

@@ -33,7 +33,7 @@
         </div>
         <div>
             <div class="text-[13px] font-bold">{{ __('rail.career_score') }}</div>
-            <a href="{{ route('candidate.jobs') }}" class="text-[11.5px] font-bold text-ttn-primary-dark">{{ __('rail.view_plan') }}</a>
+            <button type="button" @click="$store.careerReadiness.show()" class="text-[11.5px] font-bold text-ttn-primary-dark cursor-pointer">{{ __('rail.view_plan') }}</button>
         </div>
     </div>
 

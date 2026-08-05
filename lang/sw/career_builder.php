@@ -11,4 +11,5 @@ return [
     'no_cities_yet' => 'Hakuna miji iliyochaguliwa bado.',
     'popular' => 'Maarufu:',
     'type_a_city' => 'Andika mji…',
+    'pick_countries_first' => 'Chagua Nchi Unazopendelea hapo juu ili kuona mapendekezo ya miji yanayolingana — au andika mji wowote hapa chini.',
 ];

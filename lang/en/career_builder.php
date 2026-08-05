@@ -11,4 +11,5 @@ return [
     'no_cities_yet' => 'No cities selected yet.',
     'popular' => 'Popular:',
     'type_a_city' => 'Type a city…',
+    'pick_countries_first' => 'Pick your Preferred Countries above to see matching city suggestions — or type any city below.',
 ];

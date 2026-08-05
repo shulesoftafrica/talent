@@ -384,6 +384,8 @@
                 },
 
                 async resendOtp() {
+                    this.otpError = null;
+                    this.otpCode = '';
                     await postJson('{{ route('otp.resend') }}', {
                         phone_or_email: this.otpContact,
                         purpose: this.otpPurpose,
@@ -391,6 +393,7 @@
                 },
 
                 async verifyOtp() {
+                    if (this.otpVerifying) return;
                     this.otpVerifying = true;
                     this.otpError = null;
                     const { ok, data } = await postJson('{{ route('otp.verify') }}', {
@@ -405,6 +408,11 @@
 
                     if (!ok) {
                         this.otpError = data.message || T.invalid_code;
+                        // A wrong code left sitting in the field (especially
+                        // once it hits maxlength) makes it easy to think a
+                        // retry did nothing — clear it so the next attempt
+                        // is a deliberate fresh entry, not a leftover typo.
+                        this.otpCode = '';
                         return;
                     }
 

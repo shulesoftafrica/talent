@@ -57,6 +57,12 @@ class OtpController extends Controller
 
     public function verify(Request $request): JsonResponse
     {
+        // SMS autofill on mobile (autocomplete="one-time-code") sometimes
+        // hands the input a trailing space or newline along with the digits
+        // — normalize before the strict size:6 check so that doesn't cause
+        // an otherwise-correct code to fail validation.
+        $request->merge(['code' => trim((string) $request->input('code'))]);
+
         $data = $request->validate([
             'phone_or_email' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'size:6'],
@@ -66,12 +72,19 @@ class OtpController extends Controller
             'city_id' => ['nullable', 'integer'],
         ]);
 
-        $valid = $this->otp->verify($data['phone_or_email'], $data['code'], $data['purpose']);
+        $result = $this->otp->verify($data['phone_or_email'], $data['code'], $data['purpose']);
 
-        if (!$valid) {
+        if ($result !== 'success') {
+            $message = match ($result) {
+                'too_many_attempts' => 'Too many incorrect attempts. Please request a new code.',
+                'expired_or_missing' => 'That code has expired. Please request a new code.',
+                default => 'That code is incorrect. Please try again.',
+            };
+
             return response()->json([
                 'success' => false,
-                'message' => 'That code is incorrect or has expired. Please try again.',
+                'locked_out' => in_array($result, ['too_many_attempts', 'expired_or_missing'], true),
+                'message' => $message,
             ], 422);
         }
 

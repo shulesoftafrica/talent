@@ -176,11 +176,11 @@ class ApplicationsController extends Controller
             ],
             default => [
                 'title' => 'While You Wait',
-                'items' => [
+                'items' => array_values(array_filter([
                     'Keep your profile complete and up to date',
-                    'Verify your education or employment history to stand out',
+                    config('services.verification_enabled') ? 'Verify your education or employment history to stand out' : null,
                     'Check Job Matches for other open roles',
-                ],
+                ])),
             ],
         };
     }

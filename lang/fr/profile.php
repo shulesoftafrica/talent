@@ -75,6 +75,7 @@ return [
     'video_url_placeholder' => 'Lien YouTube ou Vimeo',
     'video_url_hint' => 'Collez un lien vers votre vidéo sur YouTube ou Vimeo — les fichiers vidéo ne peuvent pas être téléversés directement.',
     'watch_video' => 'Regarder la vidéo',
+    'view_file' => 'Voir le fichier',
     'upload' => 'Téléverser',
     'replace_file_optional' => 'Choisissez un nouveau fichier seulement si vous voulez remplacer l\'actuel.',
     'save_portfolio' => 'Enregistrer l\'Élément',

@@ -75,6 +75,7 @@ return [
     'video_url_placeholder' => 'YouTube or Vimeo link',
     'video_url_hint' => 'Paste a link to your video on YouTube or Vimeo — video files can\'t be uploaded directly.',
     'watch_video' => 'Watch video',
+    'view_file' => 'View file',
     'upload' => 'Upload',
     'replace_file_optional' => 'Choose a new file only if you want to replace the current one.',
     'save_portfolio' => 'Save Portfolio Item',

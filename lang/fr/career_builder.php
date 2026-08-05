@@ -11,4 +11,5 @@ return [
     'no_cities_yet' => 'Aucune ville sélectionnée pour le moment.',
     'popular' => 'Populaires :',
     'type_a_city' => 'Tapez une ville…',
+    'pick_countries_first' => 'Sélectionnez vos Pays Préférés ci-dessus pour voir des suggestions de villes correspondantes — ou tapez n\'importe quelle ville ci-dessous.',
 ];

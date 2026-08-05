@@ -22,7 +22,7 @@ class Candidate extends Authenticatable
         'cv_parsed_at', 'dob', 'sex', 'country_id', 'current_location', 'profession',
         'current_employer', 'current_employer_verified', 'availability',
         'open_to_opportunities', 'is_premium', 'premium_until', 'billing_ucn', 'trust_score',
-        'profile_strength', 'career_score', 'status',
+        'status',
     ];
 
     protected $hidden = ['remember_token'];
@@ -147,5 +147,49 @@ class Candidate extends Authenticatable
         return Attribute::get(fn () => $this->careerAnswers()
             ->pluck('field_value', 'field_key')
             ->all());
+    }
+
+    /**
+     * Overrides the (never-written) profile_strength column with a live
+     * computation, mirroring the same per-section signals shown on the
+     * profile page's own completion meter (ProfileController::profileCompletion)
+     * — averaged into a single 0-100 figure.
+     */
+    protected function profileStrength(): Attribute
+    {
+        return Attribute::get(function () {
+            $sections = [
+                $this->full_name && $this->current_location ? 100 : 60,
+                $this->experiences()->exists() ? 100 : 0,
+                $this->educations()->exists() ? 100 : 0,
+                min(100, $this->portfolioItems()->count() * 50),
+                min(100, $this->skills()->count() * 25),
+            ];
+
+            return (int) round(array_sum($sections) / count($sections));
+        });
+    }
+
+    /**
+     * Overrides the (never-written) career_score column with a live
+     * computation — a blend of Career Profile Builder completion (the
+     * profession-specific "match accuracy" already shown on that card) and
+     * broader profile signals (experience, education, portfolio, skills),
+     * so it actually moves as the candidate builds out their profile.
+     */
+    protected function careerScore(): Attribute
+    {
+        return Attribute::get(function () {
+            $builderPct = app(\App\Services\CareerBuilder\CareerBuilderDataService::class)
+                ->build($this)['progress']['pct'] ?? 0;
+
+            $signals = 0;
+            $signals += $this->experiences()->exists() ? 20 : 0;
+            $signals += $this->educations()->exists() ? 15 : 0;
+            $signals += min(20, $this->portfolioItems()->count() * 10);
+            $signals += min(15, $this->skills()->count() * 5);
+
+            return (int) min(99, max(0, round($builderPct * 0.7 + $signals * 0.3)));
+        });
     }
 }

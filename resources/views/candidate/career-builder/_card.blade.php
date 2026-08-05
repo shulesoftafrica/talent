@@ -21,8 +21,8 @@
                 <div class="flex-1 min-w-[180px] sm:min-w-[220px]">
                     <div class="flex items-center justify-between gap-3 mb-1">
                         <div class="font-display text-[15px] font-bold">{{ __('career_builder.title') }}</div>
-                        <button type="button" @click="changingProfession = !changingProfession" class="text-[11px] font-bold underline decoration-white/40 opacity-80 hover:opacity-100 cursor-pointer whitespace-nowrap">
-                            <span x-show="!changingProfession">{{ __('career_builder.change_profession') }}</span>
+                        <button type="button" @click="changingProfession = !changingProfession" class="shrink-0 rounded-lg bg-white/15 hover:bg-white/25 px-3.5 py-1.5 text-[11.5px] font-bold text-white cursor-pointer whitespace-nowrap">
+                            <span x-show="!changingProfession">✎ {{ __('career_builder.change_profession') }}</span>
                             <span x-show="changingProfession" x-cloak>{{ __('common.cancel') }}</span>
                         </button>
                     </div>
@@ -70,7 +70,7 @@
                 </button>
 
                 <div x-show="open" x-cloak class="px-5 pb-5 flex flex-col gap-5">
-                    <form method="POST" action="{{ route('candidate.career.answers') }}" class="flex flex-col gap-5">
+                    <form method="POST" action="{{ route('candidate.career.answers') }}" class="flex flex-col gap-5" x-data="{ selectedCountries: @js($answers->get('countries', [])) }">
                         @csrf
                         <input type="hidden" name="step" value="{{ $stepKey }}">
 
@@ -100,6 +100,12 @@
                                         hasCity(city) {
                                             return this.selected.some(c => c.toLowerCase() === city.toLowerCase());
                                         },
+                                        // Only suggest cities from the countries the candidate has
+                                        // actually picked as preferred — otherwise these one-click
+                                        // chips let them 'select' a city outside that list entirely.
+                                        visiblePopular() {
+                                            return this.popular.filter(c => !this.hasCity(c.city) && (this.selectedCountries.length === 0 || this.selectedCountries.includes(c.country)));
+                                        },
                                         addCity(city) {
                                             const v = (city ?? this.newCity).trim();
                                             if (v && !this.hasCity(v)) {
@@ -123,11 +129,14 @@
                                                 </span>
                                             </template>
                                         </div>
-                                        <template x-if="popular.filter(c => !hasCity(c)).length">
+                                        <template x-if="selectedCountries.length === 0">
+                                            <div class="text-[11px] text-ttn-amber-text mb-2.5">{{ __('career_builder.pick_countries_first') }}</div>
+                                        </template>
+                                        <template x-if="visiblePopular().length">
                                             <div class="flex flex-wrap items-center gap-1.5 mb-2.5">
                                                 <span class="text-[10.5px] font-semibold text-ttn-text2">{{ __('career_builder.popular') }}</span>
-                                                <template x-for="city in popular.filter(c => !hasCity(c))" :key="city">
-                                                    <button type="button" @click="addCity(city)" class="cursor-pointer rounded-full border border-ttn-border px-2.5 py-1 text-[11px] font-semibold text-ttn-text2 hover:bg-ttn-subtle" x-text="city"></button>
+                                                <template x-for="city in visiblePopular()" :key="city.city">
+                                                    <button type="button" @click="addCity(city.city)" class="cursor-pointer rounded-full border border-ttn-border px-2.5 py-1 text-[11px] font-semibold text-ttn-text2 hover:bg-ttn-subtle" x-text="city.city"></button>
                                                 </template>
                                             </div>
                                         </template>
@@ -140,7 +149,7 @@
                                             >
                                             <datalist id="{{ $stepKey }}-{{ $field['key'] }}-cities">
                                                 @foreach ($field['cityOptions'] ?? [] as $cityOption)
-                                                    <option value="{{ $cityOption }}"></option>
+                                                    <option value="{{ $cityOption['city'] }}"></option>
                                                 @endforeach
                                             </datalist>
                                             <button type="button" @click="addCity()" class="shrink-0 rounded-lg bg-ttn-primary px-4 py-2 text-[12.5px] font-bold text-white cursor-pointer">{{ __('common.add') }}</button>
@@ -159,6 +168,7 @@
                                                 :value="$value"
                                                 :label="$label"
                                                 :checked="in_array((string) $value, array_map('strval', $current), true)"
+                                                @if ($field['key'] === 'countries') x-model="selectedCountries" @endif
                                             />
                                         @endforeach
                                     </div>

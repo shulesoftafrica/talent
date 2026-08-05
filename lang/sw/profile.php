@@ -75,6 +75,7 @@ return [
     'video_url_placeholder' => 'Kiungo cha YouTube au Vimeo',
     'video_url_hint' => 'Bandika kiungo cha video yako kwenye YouTube au Vimeo — faili za video haziwezi kupakiwa moja kwa moja.',
     'watch_video' => 'Tazama video',
+    'view_file' => 'Angalia faili',
     'upload' => 'Pakia',
     'replace_file_optional' => 'Chagua faili mpya tu kama unataka kubadilisha ile ya sasa.',
     'save_portfolio' => 'Hifadhi Kazi',

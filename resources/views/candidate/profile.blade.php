@@ -454,8 +454,13 @@
                         <div class="text-[13px] font-semibold">{{ $item->title }}</div>
                         @if ($item->external_url)
                             <a href="{{ $item->external_url }}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-ttn-primary-dark font-semibold mt-1 inline-block">▶ {{ __('profile.watch_video') }}</a>
-                        @elseif ($item->file_size_bytes)
-                            <div class="text-[11px] text-ttn-text2 mt-1">{{ number_format($item->file_size_bytes / 1024, 0) }} KB</div>
+                        @elseif ($item->file_path)
+                            <div class="flex items-center gap-2 mt-1">
+                                <a href="{{ \Illuminate\Support\Facades\Storage::disk('local')->temporaryUrl($item->file_path, now()->addMinutes(15)) }}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-ttn-primary-dark font-semibold">📄 {{ __('profile.view_file') }}</a>
+                                @if ($item->file_size_bytes)
+                                    <span class="text-[11px] text-ttn-text2">· {{ number_format($item->file_size_bytes / 1024, 0) }} KB</span>
+                                @endif
+                            </div>
                         @endif
                         <div class="flex gap-3 mt-2">
                             <button @click="editing = true" type="button" class="text-[11px] font-bold text-ttn-primary-dark cursor-pointer">{{ __('common.edit') }}</button>

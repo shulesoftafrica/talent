@@ -380,14 +380,17 @@ class ProfileItemController extends Controller
         return back()->with('status', 'Portfolio item removed.');
     }
 
+    /** Earliest plausible date for anything in a candidate's work/education history. */
+    private const EARLIEST_HISTORY_DATE = '1950-01-01';
+
     private function validateExperience(Request $request): array
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'organization' => ['required', 'string', 'max:255'],
             'location' => ['nullable', 'string', 'max:255'],
-            'start_date' => ['nullable', 'date'],
-            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'start_date' => ['nullable', 'date', 'after_or_equal:' . self::EARLIEST_HISTORY_DATE, 'before_or_equal:today'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date', 'before_or_equal:today'],
             'is_current' => ['nullable', 'boolean'],
             'tasks' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -400,22 +403,26 @@ class ProfileItemController extends Controller
 
     private function validateEducation(Request $request): array
     {
+        $maxYear = (int) now()->addYears(10)->year;
+
         return $request->validate([
             'degree' => ['required', 'string', 'max:255'],
             'school' => ['required', 'string', 'max:255'],
-            'start_year' => ['nullable', 'string', 'max:10'],
-            'end_year' => ['nullable', 'string', 'max:10'],
+            'start_year' => ['nullable', 'digits:4', 'integer', 'min:1950', 'max:' . $maxYear],
+            'end_year' => ['nullable', 'digits:4', 'integer', 'min:1950', 'max:' . $maxYear, 'gte:start_year'],
         ]);
     }
 
     private function validateCertification(Request $request): array
     {
+        $maxExpiry = now()->addYears(50)->toDateString();
+
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'issuer' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:100'],
-            'issued_at' => ['nullable', 'date'],
-            'expires_at' => ['nullable', 'date', 'after_or_equal:issued_at'],
+            'issued_at' => ['nullable', 'date', 'after_or_equal:' . self::EARLIEST_HISTORY_DATE, 'before_or_equal:today'],
+            'expires_at' => ['nullable', 'date', 'after_or_equal:issued_at', 'before_or_equal:' . $maxExpiry],
         ]);
     }
 

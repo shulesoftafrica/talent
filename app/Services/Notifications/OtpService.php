@@ -51,9 +51,15 @@ class OtpService
     }
 
     /**
-     * @return bool True if the code was valid and is now marked verified.
+     * A wrong-code failure and an attempts-exhausted failure need different
+     * messages — once attempts run out, no code (not even the genuinely
+     * correct one) will ever verify against this row again, so telling the
+     * candidate to just "try again" without also telling them to request a
+     * new code leaves them stuck retrying something that can never succeed.
+     *
+     * @return 'success'|'invalid_code'|'too_many_attempts'|'expired_or_missing'
      */
-    public function verify(string $phoneOrEmail, string $code, string $purpose = 'login'): bool
+    public function verify(string $phoneOrEmail, string $code, string $purpose = 'login'): string
     {
         $otp = CandidateOtp::where('phone_or_email', $phoneOrEmail)
             ->where('purpose', $purpose)
@@ -61,22 +67,22 @@ class OtpService
             ->latest()
             ->first();
 
-        if (!$otp) {
-            return false;
+        if (!$otp || $otp->expires_at->isPast()) {
+            return 'expired_or_missing';
         }
 
-        if ($otp->attempts >= self::MAX_ATTEMPTS || $otp->expires_at->isPast()) {
-            return false;
+        if ($otp->attempts >= self::MAX_ATTEMPTS) {
+            return 'too_many_attempts';
         }
 
         if (!hash_equals($otp->code, $code)) {
             $otp->increment('attempts');
-            return false;
+            return 'invalid_code';
         }
 
         $otp->forceFill(['verified_at' => now()])->save();
 
-        return true;
+        return 'success';
     }
 
     /**

@@ -119,7 +119,14 @@ class CareerBuilderDataService
     }
 
     /**
-     * @return array<int, string>
+     * Each city is paired with its country's display name (matching the
+     * exact string poolCountries() uses for the 'countries' chip field) so
+     * the frontend can filter city suggestions down to whichever countries
+     * the candidate has actually picked as preferred — otherwise the
+     * suggestion/typeahead pool spans every country with an active school
+     * regardless of what's selected.
+     *
+     * @return array<int, array{city: string, country: ?string}>
      */
     private function poolCities(array $poolCountryIds): array
     {
@@ -127,10 +134,14 @@ class CareerBuilderDataService
             return [];
         }
 
+        $countryNames = ReferCountry::whereIn('id', $poolCountryIds)->pluck('country', 'id')
+            ->map(fn ($country) => trim(preg_replace('/\s*\([^)]*\)\s*$/', '', $country)));
+
         return ReferCity::whereIn('countryid', $poolCountryIds)
             ->orderBy('city')
-            ->pluck('city')
-            ->unique()
+            ->get(['city', 'countryid'])
+            ->unique('city')
+            ->map(fn ($row) => ['city' => $row->city, 'country' => $countryNames[$row->countryid] ?? null])
             ->values()
             ->all();
     }
@@ -141,21 +152,22 @@ class CareerBuilderDataService
      * names when they exist in the live pool, falling back to the first few
      * pool cities alphabetically so this never comes up empty.
      *
-     * @return array<int, string>
+     * @param array<int, array{city: string, country: ?string}> $poolCities
+     * @return array<int, array{city: string, country: ?string}>
      */
     private function citySamples(array $poolCities): array
     {
         $preferred = ['Dar Es Salaam', 'Arusha', 'Dodoma', 'Mwanza', 'Zanzibar', 'Lagos', 'Abuja', 'Nairobi'];
 
         $matches = collect($poolCities)
-            ->filter(fn ($city) => collect($preferred)->contains(fn ($p) => strcasecmp($p, $city) === 0))
+            ->filter(fn ($row) => collect($preferred)->contains(fn ($p) => strcasecmp($p, $row['city']) === 0))
             ->values();
 
         if ($matches->count() >= 4) {
             return $matches->all();
         }
 
-        return collect($poolCities)->take(8)->all();
+        return collect($poolCities)->take(8)->values()->all();
     }
 
     private function subjectOptions(int $countryId)
