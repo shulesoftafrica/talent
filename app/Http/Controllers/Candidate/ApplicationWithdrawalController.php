@@ -62,7 +62,7 @@ class ApplicationWithdrawalController extends Controller
             ->update(['status' => 'rejected', 'updated_at' => now()]);
 
         if ($data['reason'] === 'accepted_other_offer') {
-            session()->flash('withdrawal_offer_prompt', $application->id);
+            session()->flash('withdrawal_offer_prompt', $application->uuid);
         }
 
         return redirect()

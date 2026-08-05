@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuidRouteKey;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class CandidateVerificationReference extends Model
 {
+    use HasUuidRouteKey;
+
     protected $fillable = [
         'candidate_verification_item_id', 'candidate_experience_id',
         'full_name', 'position', 'relationship', 'corporate_email', 'phone',

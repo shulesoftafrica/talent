@@ -28,9 +28,9 @@
                         <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-amber-text mb-2">{{ __('applications.needs_attention') }}</div>
                         <div class="flex flex-col gap-2">
                             @foreach ($attention as $app)
-                                @php $isSelected = $selected['id'] === $app['id']; @endphp
+                                @php $isSelected = $selected['uuid'] === $app['uuid']; @endphp
                                 <div class="rounded-lg border {{ $isSelected ? 'border-ttn-primary' : 'border-ttn-border' }} border-l-4 {{ $isSelected ? 'bg-ttn-primary-light' : 'bg-ttn-card' }}">
-                                    <a href="{{ route('candidate.applications.index', ['selected' => $app['id']]) }}" class="text-left p-3 block">
+                                    <a href="{{ route('candidate.applications.index', ['selected' => $app['uuid']]) }}" class="text-left p-3 block">
                                         <div class="text-[13px] font-bold mb-0.5">{{ $app['title'] }}</div>
                                         <div class="text-[11px] text-ttn-text2">{{ $app['school'] }} &middot; {{ $app['status_label'] }}</div>
                                     </a>
@@ -46,9 +46,9 @@
                         <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-text2 mb-2">{{ __('applications.waiting_for_school') }}</div>
                         <div class="flex flex-col gap-2">
                             @foreach ($waiting as $app)
-                                @php $isSelected = $selected['id'] === $app['id']; @endphp
+                                @php $isSelected = $selected['uuid'] === $app['uuid']; @endphp
                                 <div class="rounded-lg border {{ $isSelected ? 'border-ttn-primary' : 'border-ttn-border' }} {{ $isSelected ? 'bg-ttn-primary-light' : 'bg-ttn-card' }}">
-                                    <a href="{{ route('candidate.applications.index', ['selected' => $app['id']]) }}" class="text-left p-3 block">
+                                    <a href="{{ route('candidate.applications.index', ['selected' => $app['uuid']]) }}" class="text-left p-3 block">
                                         <div class="text-[13px] font-bold mb-0.5">{{ $app['title'] }}</div>
                                         <div class="text-[11px] text-ttn-text2">{{ $app['school'] }} &middot; {{ $app['status_label'] }}</div>
                                         <div class="text-[10.5px] text-ttn-text2 mt-1 opacity-80">{{ __('applications.applied_on', ['date' => $app['applied_on']]) }}</div>
@@ -67,9 +67,9 @@
                         </button>
                         <div x-show="open" x-cloak class="flex flex-col gap-2">
                             @foreach ($completed as $app)
-                                @php $isSelected = $selected['id'] === $app['id']; @endphp
+                                @php $isSelected = $selected['uuid'] === $app['uuid']; @endphp
                                 <div class="rounded-lg border {{ $isSelected ? 'border-ttn-primary' : 'border-ttn-border' }} {{ $isSelected ? 'bg-ttn-primary-light' : 'bg-ttn-card' }}">
-                                    <a href="{{ route('candidate.applications.index', ['selected' => $app['id']]) }}" class="text-left p-3 block">
+                                    <a href="{{ route('candidate.applications.index', ['selected' => $app['uuid']]) }}" class="text-left p-3 block">
                                         <div class="text-[13px] font-bold mb-0.5">{{ $app['title'] }}</div>
                                         <div class="text-[11px] text-ttn-text2">{{ $app['school'] }} &middot; {{ $app['status_label'] }}</div>
                                     </a>

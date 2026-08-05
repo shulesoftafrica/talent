@@ -35,7 +35,7 @@
             </template>
 
             @if ($app['can_withdraw'])
-                <form method="POST" action="{{ route('candidate.applications.withdraw', $app['id']) }}">
+                <form method="POST" action="{{ route('candidate.applications.withdraw', $app['uuid']) }}">
                     @csrf
 
                     {{--

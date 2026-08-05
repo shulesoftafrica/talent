@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuidRouteKey;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CandidateEducation extends Model
 {
+    use HasUuidRouteKey;
+
     // Explicit — Eloquent's pluralizer treats "Education" as uncountable and
     // would otherwise guess "candidate_education" (no trailing 's').
     protected $table = 'candidate_educations';

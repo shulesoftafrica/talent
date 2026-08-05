@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuidRouteKey;
 use App\Services\Applications\ApplicationStatusMapper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 class Application extends Model
 {
+    use HasUuidRouteKey;
+
     protected $fillable = [
         'candidate_id', 'source_schema', 'source_job_posting_id', 'source_application_id',
         'last_seen_status', 'ai_health_score', 'ai_health_label', 'ai_health_why', 'ai_health_missing',

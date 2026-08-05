@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuidRouteKey;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notification extends Model
 {
+    use HasUuidRouteKey;
+
     protected $fillable = [
         'candidate_id', 'application_id', 'type', 'title', 'body', 'action_url', 'read_at',
     ];

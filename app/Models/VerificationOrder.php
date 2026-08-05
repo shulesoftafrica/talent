@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuidRouteKey;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class VerificationOrder extends Model
 {
+    use HasUuidRouteKey;
+
     protected $fillable = [
         'candidate_id', 'kind', 'total_amount', 'currency', 'status', 'meta',
         'billing_invoice_id', 'billing_ucn', 'billing_stripe_link', 'billing_flutterwave_link', 'paid_at',

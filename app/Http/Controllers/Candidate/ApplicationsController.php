@@ -39,8 +39,8 @@ class ApplicationsController extends Controller
         $waiting = $apps->where('urgency', 'waiting')->values();
         $completed = $apps->where('urgency', 'completed')->values();
 
-        $selectedId = (int) $request->query('selected', $apps->first()['id'] ?? 0);
-        $selected = $apps->firstWhere('id', $selectedId) ?? $apps->first();
+        $selectedUuid = $request->query('selected', $apps->first()['uuid'] ?? null);
+        $selected = $apps->firstWhere('uuid', $selectedUuid) ?? $apps->first();
 
         return view('candidate.applications', [
             'candidate' => $candidate,
@@ -69,7 +69,7 @@ class ApplicationsController extends Controller
         );
 
         return redirect()
-            ->route('candidate.applications.index', ['selected' => $application->id])
+            ->route('candidate.applications.index', ['selected' => $application->uuid])
             ->with('status', 'Application submitted.');
     }
 
@@ -91,6 +91,7 @@ class ApplicationsController extends Controller
 
         return [
             'id' => $app->id,
+            'uuid' => $app->uuid,
             'title' => $job->title ?? 'Job posting no longer available',
             'school' => $this->resolveOrgName($app->source_schema, $job->created_by ?? null, $job->department ?? null),
             'location' => $job->location ?? null,
@@ -130,6 +131,7 @@ class ApplicationsController extends Controller
 
         return [
             'id' => $app->id,
+            'uuid' => $app->uuid,
             'title' => $job->title ?? 'Job posting no longer available',
             'school' => $this->resolveOrgName($sourceSchema, $job->created_by ?? null, $job->department ?? null),
             'withdrawn_on' => $app->withdrawn_at->format('d M Y'),
