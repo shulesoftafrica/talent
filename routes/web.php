@@ -164,6 +164,7 @@ Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->pref
         Route::post('/portfolio', [ProfileItemController::class, 'storePortfolioItem'])->name('portfolio.store');
         Route::put('/portfolio/{portfolioItem}', [ProfileItemController::class, 'updatePortfolioItem'])->name('portfolio.update');
         Route::delete('/portfolio/{portfolioItem}', [ProfileItemController::class, 'destroyPortfolioItem'])->name('portfolio.destroy');
+        Route::get('/portfolio/{portfolioItem}/file', [ProfileItemController::class, 'viewPortfolioFile'])->name('portfolio.file');
     });
 
     Route::prefix('career-builder')->name('career.')->group(function () {

@@ -456,7 +456,7 @@
                             <a href="{{ $item->external_url }}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-ttn-primary-dark font-semibold mt-1 inline-block">▶ {{ __('profile.watch_video') }}</a>
                         @elseif ($item->file_path)
                             <div class="flex items-center gap-2 mt-1">
-                                <a href="{{ \Illuminate\Support\Facades\Storage::disk('local')->temporaryUrl($item->file_path, now()->addMinutes(15)) }}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-ttn-primary-dark font-semibold">📄 {{ __('profile.view_file') }}</a>
+                                <a href="{{ route('candidate.profile.portfolio.file', $item) }}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-ttn-primary-dark font-semibold">📄 {{ __('profile.view_file') }}</a>
                                 @if ($item->file_size_bytes)
                                     <span class="text-[11px] text-ttn-text2">· {{ number_format($item->file_size_bytes / 1024, 0) }} KB</span>
                                 @endif

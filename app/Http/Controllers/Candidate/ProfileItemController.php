@@ -380,6 +380,22 @@ class ProfileItemController extends Controller
         return back()->with('status', 'Portfolio item removed.');
     }
 
+    /**
+     * Streams the file directly through the app rather than linking to a
+     * signed /storage/... URL — the live server's nginx config caches/serves
+     * common file extensions (including .pdf) as static files, which
+     * 404s before Laravel's own private-file route ever runs. A URL that
+     * doesn't end in one of those extensions bypasses that entirely.
+     */
+    public function viewPortfolioFile(CandidatePortfolioItem $portfolioItem): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $this->authorizeOwner($portfolioItem);
+
+        abort_unless($portfolioItem->file_path && Storage::disk('local')->exists($portfolioItem->file_path), 404);
+
+        return Storage::disk('local')->response($portfolioItem->file_path);
+    }
+
     /** Earliest plausible date for anything in a candidate's work/education history. */
     private const EARLIEST_HISTORY_DATE = '1950-01-01';
 
