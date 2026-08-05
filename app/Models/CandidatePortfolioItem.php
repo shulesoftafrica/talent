@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CandidatePortfolioItem extends Model
 {
     protected $fillable = [
-        'candidate_id', 'type', 'title', 'file_path', 'file_size_bytes', 'description',
+        'candidate_id', 'type', 'title', 'file_path', 'file_size_bytes', 'external_url', 'description',
     ];
 
     public function candidate(): BelongsTo

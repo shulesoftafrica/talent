@@ -440,7 +440,7 @@
     </div>
 
     {{-- Professional Portfolio --}}
-    <div x-data="{ open: false }" class="rounded-2xl border border-ttn-border bg-ttn-card p-4 sm:p-6 mb-4">
+    <div x-data="{ open: false, newType: '' }" class="rounded-2xl border border-ttn-border bg-ttn-card p-4 sm:p-6 mb-4">
         <div class="flex justify-between items-center mb-1">
             <div class="font-display text-[15px] font-bold">{{ __('profile.portfolio') }}</div>
             <button @click="open = !open" class="flex h-7 w-7 items-center justify-center rounded-lg bg-ttn-primary text-lg font-bold text-white cursor-pointer">+</button>
@@ -448,11 +448,13 @@
         <div class="text-xs text-ttn-text2 mb-3.5">{{ __('profile.portfolio_desc') }}</div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             @forelse ($candidate->portfolioItems as $item)
-                <div x-data="{ editing: false }" class="rounded-lg bg-ttn-subtle p-3.5">
+                <div x-data="{ editing: false, editType: '{{ $item->type }}' }" class="rounded-lg bg-ttn-subtle p-3.5">
                     <div x-show="!editing">
                         <div class="text-[10.5px] font-bold uppercase tracking-wide text-ttn-text2 mb-1">{{ $item->type }}</div>
                         <div class="text-[13px] font-semibold">{{ $item->title }}</div>
-                        @if ($item->file_size_bytes)
+                        @if ($item->external_url)
+                            <a href="{{ $item->external_url }}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-ttn-primary-dark font-semibold mt-1 inline-block">▶ {{ __('profile.watch_video') }}</a>
+                        @elseif ($item->file_size_bytes)
                             <div class="text-[11px] text-ttn-text2 mt-1">{{ number_format($item->file_size_bytes / 1024, 0) }} KB</div>
                         @endif
                         <div class="flex gap-3 mt-2">
@@ -468,14 +470,21 @@
                     <form x-show="editing" x-cloak method="POST" action="{{ route('candidate.profile.portfolio.update', $item) }}" enctype="multipart/form-data" class="flex flex-col gap-2.5">
                         @csrf
                         @method('PUT')
-                        <select name="type" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px] bg-ttn-card">
+                        <select name="type" x-model="editType" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px] bg-ttn-card">
                             @foreach (['Lesson Plan' => __('profile.portfolio_type_lesson_plan'), 'Teaching Video' => __('profile.portfolio_type_teaching_video'), 'Presentation Slides' => __('profile.portfolio_type_slides'), 'Project' => __('profile.portfolio_type_project'), 'Research' => __('profile.portfolio_type_research'), 'Document' => __('profile.portfolio_type_document')] as $value => $label)
                                 <option value="{{ $value }}" @selected($item->type === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
                         <input name="title" value="{{ $item->title }}" placeholder="{{ __('profile.title_placeholder') }}" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px] bg-ttn-card">
-                        <div class="text-[10.5px] text-ttn-text2">{{ __('profile.replace_file_optional') }}</div>
-                        <input name="file" type="file" class="w-full rounded-lg border border-dashed border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[12.5px] text-ttn-text2 cursor-pointer transition-colors hover:border-ttn-primary file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-ttn-primary file:px-3.5 file:py-1.5 file:text-[12px] file:font-bold file:text-white">
+                        <template x-if="editType === 'Teaching Video'">
+                            <input name="external_url" type="url" value="{{ $item->external_url }}" placeholder="{{ __('profile.video_url_placeholder') }}" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px] bg-ttn-card">
+                        </template>
+                        <template x-if="editType !== 'Teaching Video'">
+                            <div>
+                                <div class="text-[10.5px] text-ttn-text2 mb-1">{{ __('profile.replace_file_optional') }}</div>
+                                <input name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png" class="w-full rounded-lg border border-dashed border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[12.5px] text-ttn-text2 cursor-pointer transition-colors hover:border-ttn-primary file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-ttn-primary file:px-3.5 file:py-1.5 file:text-[12px] file:font-bold file:text-white">
+                            </div>
+                        </template>
                         <div class="flex gap-2">
                             <button class="rounded-lg bg-ttn-primary px-4 py-2 text-[12.5px] font-bold text-white cursor-pointer">{{ __('profile.save_changes') }}</button>
                             <button @click="editing = false" type="button" class="rounded-lg border border-ttn-border px-4 py-2 text-[12.5px] font-bold text-ttn-text2 cursor-pointer">{{ __('common.cancel') }}</button>
@@ -489,7 +498,7 @@
 
         <form x-show="open" x-cloak method="POST" action="{{ route('candidate.profile.portfolio.store') }}" enctype="multipart/form-data" class="mt-4 flex flex-col gap-2.5 border-t border-ttn-hairline pt-4">
             @csrf
-            <select name="type" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px]">
+            <select name="type" x-model="newType" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px]">
                 <option value="">{{ __('profile.portfolio_type_placeholder') }}</option>
                 <option value="Lesson Plan">{{ __('profile.portfolio_type_lesson_plan') }}</option>
                 <option value="Teaching Video">{{ __('profile.portfolio_type_teaching_video') }}</option>
@@ -499,7 +508,13 @@
                 <option value="Document">{{ __('profile.portfolio_type_document') }}</option>
             </select>
             <input name="title" placeholder="{{ __('profile.title_placeholder') }}" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px]">
-            <input name="file" type="file" required class="w-full rounded-lg border border-dashed border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[12.5px] text-ttn-text2 cursor-pointer transition-colors hover:border-ttn-primary file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-ttn-primary file:px-3.5 file:py-1.5 file:text-[12px] file:font-bold file:text-white">
+            <template x-if="newType === 'Teaching Video'">
+                <input name="external_url" type="url" placeholder="{{ __('profile.video_url_placeholder') }}" required class="rounded-lg border border-ttn-border px-3 py-2 text-[13px]">
+            </template>
+            <template x-if="newType !== 'Teaching Video'">
+                <input name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png" required class="w-full rounded-lg border border-dashed border-ttn-border bg-ttn-subtle px-3 py-2.5 text-[12.5px] text-ttn-text2 cursor-pointer transition-colors hover:border-ttn-primary file:mr-3 file:cursor-pointer file:rounded-md file:border-0 file:bg-ttn-primary file:px-3.5 file:py-1.5 file:text-[12px] file:font-bold file:text-white">
+            </template>
+            <div class="text-[10.5px] text-ttn-text2" x-show="newType === 'Teaching Video'" x-cloak>{{ __('profile.video_url_hint') }}</div>
             <button class="self-start rounded-lg bg-ttn-primary px-4 py-2 text-[12.5px] font-bold text-white cursor-pointer">{{ __('profile.upload') }}</button>
         </form>
     </div>

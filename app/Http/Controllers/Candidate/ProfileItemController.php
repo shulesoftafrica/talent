@@ -13,16 +13,35 @@ use App\Models\CandidateSkill;
 use App\Models\Constant\ReferCity;
 use App\Models\Constant\ReferCountry;
 use App\Services\Phone\PhoneNumberNormalizer;
+use App\Services\Uploads\UploadSecurityService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ProfileItemController extends Controller
 {
-    public function __construct(private readonly PhoneNumberNormalizer $phoneNormalizer)
-    {
+    /** Portfolio types a candidate can pick, matching the mockup's list. */
+    private const PORTFOLIO_TYPES = ['Lesson Plan', 'Teaching Video', 'Presentation Slides', 'Project', 'Research', 'Document'];
+
+    /**
+     * The only type that doesn't take a file upload — videos are never
+     * accepted as uploads (large, expensive to store, awkward to scan for
+     * malicious content); candidates paste a YouTube/Vimeo link instead.
+     */
+    private const VIDEO_TYPE = 'Teaching Video';
+
+    private const ALLOWED_VIDEO_HOSTS = ['youtube.com', 'www.youtube.com', 'youtu.be', 'vimeo.com', 'www.vimeo.com'];
+
+    /** Safe document/image types only — no video, no executables/scripts. */
+    private const PORTFOLIO_MIMES = 'pdf,doc,docx,ppt,pptx,xls,xlsx,jpg,jpeg,png';
+
+    public function __construct(
+        private readonly PhoneNumberNormalizer $phoneNormalizer,
+        private readonly UploadSecurityService $uploadSecurity,
+    ) {
     }
 
     public function updatePersonalInfo(Request $request): RedirectResponse
@@ -250,14 +269,21 @@ class ProfileItemController extends Controller
 
     public function storePortfolioItem(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'type' => ['required', 'string', 'max:100'],
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'file' => ['required', 'file', 'max:20480'],
-        ]);
+        $data = $this->validatePortfolioItem($request);
 
         $candidate = Auth::guard('candidate')->user();
+
+        if ($data['type'] === self::VIDEO_TYPE) {
+            $candidate->portfolioItems()->create([
+                'type' => $data['type'],
+                'title' => $data['title'],
+                'description' => $data['description'] ?? null,
+                'external_url' => $data['external_url'],
+            ]);
+
+            return back()->with('status', 'Portfolio item added.');
+        }
+
         $file = $request->file('file');
         $path = $file->store("portfolio/{$candidate->id}", 'local');
 
@@ -276,23 +302,73 @@ class ProfileItemController extends Controller
     {
         $this->authorizeOwner($portfolioItem);
 
-        $data = $request->validate([
-            'type' => ['required', 'string', 'max:100'],
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'file' => ['nullable', 'file', 'max:20480'],
-        ]);
+        $data = $this->validatePortfolioItem($request, forFileRequired: false);
 
-        if ($request->hasFile('file')) {
-            Storage::disk('local')->delete($portfolioItem->file_path);
-            $file = $request->file('file');
-            $data['file_path'] = $file->store("portfolio/{$portfolioItem->candidate_id}", 'local');
-            $data['file_size_bytes'] = $file->getSize();
+        if ($data['type'] === self::VIDEO_TYPE) {
+            if ($portfolioItem->file_path) {
+                Storage::disk('local')->delete($portfolioItem->file_path);
+            }
+            $data['file_path'] = null;
+            $data['file_size_bytes'] = null;
+        } else {
+            // Always clear a stale link left over from a prior 'Teaching
+            // Video' type, even if this edit doesn't replace the file.
+            $data['external_url'] = null;
+
+            if ($request->hasFile('file')) {
+                if ($portfolioItem->file_path) {
+                    Storage::disk('local')->delete($portfolioItem->file_path);
+                }
+                $file = $request->file('file');
+                $data['file_path'] = $file->store("portfolio/{$portfolioItem->candidate_id}", 'local');
+                $data['file_size_bytes'] = $file->getSize();
+            }
         }
 
         $portfolioItem->update($data);
 
         return back()->with('status', 'Portfolio item updated.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validatePortfolioItem(Request $request, bool $forFileRequired = true): array
+    {
+        $isVideo = $request->input('type') === self::VIDEO_TYPE;
+
+        $data = $request->validate([
+            'type' => ['required', Rule::in(self::PORTFOLIO_TYPES)],
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'file' => $isVideo
+                ? ['prohibited']
+                : [$forFileRequired ? 'required' : 'nullable', 'file', 'mimes:' . self::PORTFOLIO_MIMES, 'max:20480'],
+            'external_url' => $isVideo
+                ? ['required', 'url:https,http', 'max:500']
+                : ['prohibited'],
+        ]);
+
+        if ($isVideo && !$this->isAllowedVideoHost($data['external_url'])) {
+            throw ValidationException::withMessages([
+                'external_url' => 'Please paste a YouTube or Vimeo link.',
+            ]);
+        }
+
+        if (!$isVideo && $request->hasFile('file')) {
+            if ($unsafeReason = $this->uploadSecurity->check($request->file('file'))) {
+                throw ValidationException::withMessages(['file' => $unsafeReason]);
+            }
+        }
+
+        return $data;
+    }
+
+    private function isAllowedVideoHost(string $url): bool
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        return in_array($host, self::ALLOWED_VIDEO_HOSTS, true);
     }
 
     public function destroyPortfolioItem(CandidatePortfolioItem $portfolioItem): RedirectResponse
