@@ -49,6 +49,7 @@ class CareerBuilderController extends Controller
 
             $value = $request->input($key);
             $value = is_array($value) ? array_values(array_filter($value, fn ($v) => $v !== '')) : $value;
+            $value = $this->boundValue($value);
 
             // An empty/cleared field means "no answer yet" — delete the row
             // rather than writing null, since step-completion is derived
@@ -65,6 +66,24 @@ class CareerBuilderController extends Controller
         }
 
         return back()->with('status', 'Saved.');
+    }
+
+    /**
+     * Field values here are free-form (a candidate's typed salary figure,
+     * multi-select choices, dynamic city/country picks) rather than going
+     * through a single Request::validate() call, so length/count bounds are
+     * enforced here instead — no legitimate answer needs more than this.
+     */
+    private function boundValue(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return array_map(
+                fn ($v) => is_string($v) ? mb_substr($v, 0, 255) : $v,
+                array_slice($value, 0, 50)
+            );
+        }
+
+        return is_string($value) ? mb_substr($value, 0, 255) : $value;
     }
 
     public function saveSubject(Request $request): RedirectResponse

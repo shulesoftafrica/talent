@@ -44,6 +44,7 @@ class QueueController extends Controller
 
     public function approve(CandidateVerificationItem $item, Request $request): RedirectResponse
     {
+        $notes = $request->validate(['notes' => ['nullable', 'string', 'max:2000']])['notes'] ?? null;
         $officer = Auth::guard('officer')->user();
 
         $item->forceFill([
@@ -52,15 +53,16 @@ class QueueController extends Controller
             'reviewed_at' => now(),
         ])->save();
 
-        $this->statusService->transition($item, VerificationStatus::VERIFIED, 'officer', $officer->id, $request->input('notes'));
+        $this->statusService->transition($item, VerificationStatus::VERIFIED, 'officer', $officer->id, $notes);
 
-        $this->log($item, $officer, 'approve', $request->input('notes'));
+        $this->log($item, $officer, 'approve', $notes);
 
         return redirect()->route('officer.queue')->with('status', 'Approved.');
     }
 
     public function reject(CandidateVerificationItem $item, Request $request): RedirectResponse
     {
+        $notes = $request->validate(['notes' => ['nullable', 'string', 'max:2000']])['notes'] ?? null;
         $officer = Auth::guard('officer')->user();
 
         $item->forceFill([
@@ -68,9 +70,9 @@ class QueueController extends Controller
             'reviewed_at' => now(),
         ])->save();
 
-        $this->statusService->transition($item, VerificationStatus::REJECTED, 'officer', $officer->id, $request->input('notes'));
+        $this->statusService->transition($item, VerificationStatus::REJECTED, 'officer', $officer->id, $notes);
 
-        $this->log($item, $officer, 'reject', $request->input('notes'));
+        $this->log($item, $officer, 'reject', $notes);
 
         return redirect()->route('officer.queue')->with('status', 'Rejected.');
     }
