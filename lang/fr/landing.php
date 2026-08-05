@@ -71,5 +71,7 @@ return [
         'enter_contact_first' => "Entrez d'abord votre téléphone ou e-mail.",
         'could_not_send_code' => "Impossible d'envoyer le code.",
         'invalid_code' => 'Code invalide.',
+        'cv_invalid_type' => 'Veuillez téléverser un document PDF ou Word (.pdf, .doc, .docx).',
+        'cv_too_large' => 'Ce fichier est trop volumineux — veuillez téléverser un CV de moins de 5 Mo.',
     ],
 ];

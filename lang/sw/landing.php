@@ -71,5 +71,7 @@ return [
         'enter_contact_first' => 'Weka namba yako ya simu au barua pepe kwanza.',
         'could_not_send_code' => 'Imeshindikana kutuma nambari.',
         'invalid_code' => 'Nambari si sahihi.',
+        'cv_invalid_type' => 'Tafadhali pakia hati ya PDF au Word (.pdf, .doc, .docx).',
+        'cv_too_large' => 'Faili hilo ni kubwa mno — tafadhali pakia CV chini ya 5MB.',
     ],
 ];

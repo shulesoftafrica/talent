@@ -71,5 +71,7 @@ return [
         'enter_contact_first' => 'Enter your phone or email first.',
         'could_not_send_code' => 'Could not send code.',
         'invalid_code' => 'Invalid code.',
+        'cv_invalid_type' => 'Please upload a PDF or Word document (.pdf, .doc, .docx).',
+        'cv_too_large' => 'That file is too large — please upload a CV under 5MB.',
     ],
 ];

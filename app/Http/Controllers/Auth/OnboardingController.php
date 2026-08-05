@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Services\AI\CvParserService;
 use App\Services\Location\CountryDetectionService;
+use App\Services\Uploads\UploadSecurityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,13 +19,18 @@ use Illuminate\Support\Str;
  */
 class OnboardingController extends Controller
 {
-    public function uploadCv(Request $request, CvParserService $parser, CountryDetectionService $countryDetection): JsonResponse
+    public function uploadCv(Request $request, CvParserService $parser, CountryDetectionService $countryDetection, UploadSecurityService $uploadSecurity): JsonResponse
     {
         $request->validate([
             'cv' => ['required', 'file', 'mimes:pdf,docx,doc', 'max:5120'],
         ]);
 
         $file = $request->file('cv');
+
+        if ($unsafeReason = $uploadSecurity->check($file)) {
+            return response()->json(['success' => false, 'message' => $unsafeReason], 422);
+        }
+
         $storedPath = $file->store('cv-uploads/pending', 'local');
 
         $rawText = $parser->extractText($file);

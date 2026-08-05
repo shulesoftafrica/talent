@@ -280,6 +280,22 @@
                 async uploadCv(event) {
                     const file = event.target.files[0];
                     if (!file) return;
+
+                    const allowedExtensions = ['pdf', 'doc', 'docx'];
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (!allowedExtensions.includes(ext)) {
+                        this.cvError = T.cv_invalid_type;
+                        event.target.value = '';
+                        return;
+                    }
+
+                    const maxBytes = 5 * 1024 * 1024;
+                    if (file.size > maxBytes) {
+                        this.cvError = T.cv_too_large;
+                        event.target.value = '';
+                        return;
+                    }
+
                     this.cvUploading = true;
                     this.cvError = null;
 
