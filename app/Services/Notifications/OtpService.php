@@ -3,23 +3,29 @@
 namespace App\Services\Notifications;
 
 use App\Models\CandidateOtp;
+use App\Services\WhatsApp\MetaWhatsAppService;
 
 /**
  * Generates, stores, and delivers OTP codes for candidate phone/email
- * verification — both channels now go through the single Unified
- * Notification Client. When the identifier is a phone number, WhatsApp
- * (official Meta channel, via the notification service) is the primary
- * delivery — a copy also goes to the candidate's email when one is known
- * (e.g. parsed from their CV), for reach in case WhatsApp delivery fails
- * or they don't check it. SMS is intentionally not used for now.
+ * verification. WhatsApp goes out via the direct Meta Cloud API client —
+ * the notification service's own WhatsApp channel returned "No active
+ * WhatsApp session found for client: talent" (never provisioned there),
+ * while the direct integration is already connected and working. Email
+ * still goes through the Unified Notification Client, which is confirmed
+ * working. When the identifier is a phone number, a copy also goes to the
+ * candidate's email when one is known (e.g. parsed from their CV), for
+ * reach in case WhatsApp delivery fails or they don't check it. SMS is
+ * intentionally not used for now.
  */
 class OtpService
 {
     private const CODE_TTL_MINUTES = 5;
     private const MAX_ATTEMPTS = 5;
 
-    public function __construct(private readonly UnifiedNotificationClient $notifications)
-    {
+    public function __construct(
+        private readonly UnifiedNotificationClient $notifications,
+        private readonly MetaWhatsAppService $whatsApp,
+    ) {
     }
 
     /**
@@ -91,9 +97,10 @@ class OtpService
 
     /**
      * If the identifier is an email, that's the only channel. If it's a
-     * phone, WhatsApp (official) is primary and a copy also goes to the
-     * candidate's known email, if any — each channel fails independently
-     * without blocking the other.
+     * phone, WhatsApp (direct Meta Cloud API, with its own automatic
+     * WaSender fallback — see MetaWhatsAppService) is primary, and a copy
+     * also goes to the candidate's known email, if any — each channel
+     * fails independently without blocking the other.
      */
     private function deliver(string $phoneOrEmail, string $code, bool $isEmail, ?string $candidateEmail): void
     {
@@ -105,12 +112,7 @@ class OtpService
             return;
         }
 
-        $this->notifications->send([
-            'channel' => 'whatsapp',
-            'to' => $phoneOrEmail,
-            'message' => $message,
-            'type' => 'official',
-        ]);
+        $this->whatsApp->sendOtpTemplate($phoneOrEmail, $code);
 
         if ($candidateEmail) {
             $this->sendEmail($candidateEmail, $message);
