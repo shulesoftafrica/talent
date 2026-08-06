@@ -13,6 +13,20 @@ namespace App\Services\Jobs;
 class JobContentSanitizer
 {
     /**
+     * Recruiters frequently type the school's own name straight into the
+     * free-text 'location' field (e.g. "LUFADA HIGH SCHOOL, Tanzania"
+     * instead of just "Tanzania") — resolveReal()/redactSchoolName() can't
+     * catch this because it isn't a literal-name lookup problem, it's that
+     * an entire comma-separated segment IS the institution's name. These
+     * keywords flag such a segment for removal regardless of whether the
+     * school is resolvable in admin.schools at all (confirmed some aren't).
+     */
+    private const LOCATION_INSTITUTION_KEYWORDS = [
+        'school', 'academy', 'college', 'institute', 'university',
+        'seminary', 'polytechnic', 'preparatory', 'kindergarten',
+    ];
+
+    /**
      * Only these fields are shown — 'description' is deliberately
      * excluded, since that's almost always where a school's own
      * self-introduction (and therefore its name) lives; these others are
@@ -40,6 +54,31 @@ class JobContentSanitizer
         }
 
         return $sections;
+    }
+
+    /**
+     * Drops any comma-separated segment of a job's 'location' that names
+     * the institution itself (see LOCATION_INSTITUTION_KEYWORDS), keeping
+     * only the segments that read as actual geography. Falls back to a
+     * generic label if nothing geographic is left.
+     */
+    public function sanitizeLocation(?string $location): string
+    {
+        $segments = array_filter(array_map('trim', explode(',', (string) $location)), fn ($s) => $s !== '');
+
+        $geographic = array_values(array_filter($segments, function ($segment) {
+            $lower = mb_strtolower($segment);
+
+            foreach (self::LOCATION_INSTITUTION_KEYWORDS as $keyword) {
+                if (str_contains($lower, $keyword)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+
+        return $geographic ? implode(', ', $geographic) : 'Location hidden until you apply';
     }
 
     private function clean(string $html, ?string $schoolName): string

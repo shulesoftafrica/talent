@@ -82,7 +82,7 @@ class JobMatchesController extends Controller
                 'candidate' => $candidate,
                 'locked' => true,
                 'title' => $rawJob->title,
-                'location' => $rawJob->location,
+                'location' => $this->sanitizer->sanitizeLocation($rawJob->location),
                 'applied' => $applied,
                 'sourceSchema' => $sourceSchema,
                 'jobPostingId' => $jobPostingId,
@@ -142,6 +142,7 @@ class JobMatchesController extends Controller
 
         return [
             ...$job,
+            'location' => $this->sanitizer->sanitizeLocation($job['location']),
             'posted_days_ago' => (int) floor(Carbon::parse($job['created_at'])->diffInDays(now())),
             'deadline_days' => $deadlineDays,
             'salary_label' => $this->salaryLabel($job['salary_min'], $job['salary_max']),
