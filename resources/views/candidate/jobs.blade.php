@@ -23,7 +23,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="flex justify-between items-start gap-2.5 flex-wrap">
                             <div>
-                                <div class="text-[14.5px] font-bold">{{ $job['title'] }}</div>
+                                <a href="{{ route('candidate.jobs.show', [$job['source_schema'], $job['id']]) }}" class="text-[14.5px] font-bold hover:underline">{{ $job['title'] }}</a>
                                 <div class="text-xs text-ttn-text2">{{ __('jobs.school_hidden') }} &middot; {{ $job['location'] }} &middot; {{ $job['salary_label'] }}</div>
                                 <div class="text-[11px] text-ttn-text2 opacity-70 mt-0.5">{{ __('jobs.posted_days_ago', ['n' => $job['posted_days_ago']]) }}</div>
                             </div>

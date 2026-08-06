@@ -26,4 +26,14 @@ return [
 
     'coach_title' => '✨ Kocha wa Kazi',
     'coach_preparing' => 'Tunakuandaa kwa :job:',
+
+    'back_to_matches' => 'Rudi kwenye zinazolingana',
+    'detail_locked_title' => '🔒 Kipengele cha Premium',
+    'detail_locked_desc' => 'Taarifa kamili za kazi — majukumu, mahitaji, faida, na uchambuzi wa kulingana kwako — zinapatikana kwa wanachama wa Premium pekee.',
+    'match_breakdown_title' => 'Jinsi kulingana huku kulivyopimwa',
+    'section_responsibilities' => 'Majukumu',
+    'section_requirements' => 'Mahitaji',
+    'section_qualifications' => 'Sifa Zinazohitajika',
+    'section_benefits' => 'Faida',
+    'no_details' => 'Hakuna maelezo zaidi yaliyotolewa kwa kazi hii.',
 ];

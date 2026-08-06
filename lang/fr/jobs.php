@@ -26,4 +26,14 @@ return [
 
     'coach_title' => '✨ Coach Emploi',
     'coach_preparing' => 'Préparation pour :job :',
+
+    'back_to_matches' => 'Retour aux correspondances',
+    'detail_locked_title' => '🔒 Fonctionnalité Premium',
+    'detail_locked_desc' => 'Les détails complets de l\'offre — responsabilités, exigences, avantages, et l\'analyse de votre correspondance — sont réservés aux membres Premium.',
+    'match_breakdown_title' => 'Comment cette correspondance a été calculée',
+    'section_responsibilities' => 'Responsabilités',
+    'section_requirements' => 'Exigences',
+    'section_qualifications' => 'Qualifications',
+    'section_benefits' => 'Avantages',
+    'no_details' => 'Aucun détail supplémentaire n\'a été fourni pour cette offre.',
 ];

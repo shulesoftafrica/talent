@@ -80,6 +80,10 @@ Route::post('/logout', function () {
 
 Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->prefix('app')->name('candidate.')->group(function () {
     Route::get('/jobs', [JobMatchesController::class, 'index'])->name('jobs');
+    Route::get('/jobs/{sourceSchema}/{jobPostingId}', [JobMatchesController::class, 'show'])
+        ->whereIn('sourceSchema', ['shulesoft', 'safaribook'])
+        ->whereNumber('jobPostingId')
+        ->name('jobs.show');
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
 
     Route::prefix('applications')->name('applications.')->group(function () {

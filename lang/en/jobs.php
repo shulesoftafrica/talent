@@ -26,4 +26,14 @@ return [
 
     'coach_title' => '✨ Job Coach',
     'coach_preparing' => 'Preparing you for :job:',
+
+    'back_to_matches' => 'Back to matches',
+    'detail_locked_title' => '🔒 Premium feature',
+    'detail_locked_desc' => 'Full job details — responsibilities, requirements, benefits, and your match breakdown — are available for Premium members only.',
+    'match_breakdown_title' => 'How this match was scored',
+    'section_responsibilities' => 'Responsibilities',
+    'section_requirements' => 'Requirements',
+    'section_qualifications' => 'Qualifications',
+    'section_benefits' => 'Benefits',
+    'no_details' => 'No further details were provided for this job.',
 ];

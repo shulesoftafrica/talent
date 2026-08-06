@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Candidate;
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Services\AI\JobMatchScorer;
+use App\Services\Jobs\JobContentSanitizer;
+use App\Services\Jobs\SchoolNameResolver;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +17,11 @@ class JobMatchesController extends Controller
     /** Free-tier candidates only see this many matches before the premium upsell. */
     private const FREE_MATCH_LIMIT = 3;
 
-    public function __construct(private readonly JobMatchScorer $matcher)
-    {
+    public function __construct(
+        private readonly JobMatchScorer $matcher,
+        private readonly SchoolNameResolver $schoolNames,
+        private readonly JobContentSanitizer $sanitizer,
+    ) {
     }
 
     public function index(): View
@@ -42,6 +47,64 @@ class JobMatchesController extends Controller
             'jobs' => $visible,
             'hiddenCount' => $hiddenCount,
             'appliedKeys' => $appliedKeys,
+        ]);
+    }
+
+    /**
+     * Full job detail — responsibilities/requirements/qualifications/
+     * benefits plus the AI match breakdown, with the hiring school's name
+     * redacted throughout (candidates only learn who it is after applying).
+     * Gated behind premium: non-premium candidates get a simple upsell
+     * message instead, with no job content or score sent to the view.
+     */
+    public function show(string $sourceSchema, int $jobPostingId): View
+    {
+        abort_unless(in_array($sourceSchema, ['shulesoft', 'safaribook'], true), 404);
+
+        /** @var Candidate $candidate */
+        $candidate = Auth::guard('candidate')->user();
+
+        $rawJob = DB::connection($sourceSchema)->table('job_postings')
+            ->where('id', $jobPostingId)
+            ->where('status', 'active')
+            ->first();
+
+        abort_unless($rawJob, 404);
+
+        $applied = $candidate->applications()
+            ->where('source_schema', $sourceSchema)
+            ->where('source_job_posting_id', $jobPostingId)
+            ->whereNull('withdrawn_at')
+            ->exists();
+
+        if (!$candidate->is_premium) {
+            return view('candidate.job-detail', [
+                'candidate' => $candidate,
+                'locked' => true,
+                'title' => $rawJob->title,
+                'location' => $rawJob->location,
+                'applied' => $applied,
+                'sourceSchema' => $sourceSchema,
+                'jobPostingId' => $jobPostingId,
+            ]);
+        }
+
+        $job = $this->matcher->score($candidate, $this->fetchActiveJobs())
+            ->map(fn ($j) => $this->withDisplayFields($j))
+            ->first(fn ($j) => $j['source_schema'] === $sourceSchema && (int) $j['id'] === $jobPostingId);
+
+        abort_unless($job, 404);
+
+        $schoolName = $this->schoolNames->resolveReal($sourceSchema, $rawJob->created_by ?? null);
+
+        return view('candidate.job-detail', [
+            'candidate' => $candidate,
+            'locked' => false,
+            'job' => $job,
+            'sections' => $this->sanitizer->sections($rawJob, $schoolName),
+            'applied' => $applied,
+            'sourceSchema' => $sourceSchema,
+            'jobPostingId' => $jobPostingId,
         ]);
     }
 

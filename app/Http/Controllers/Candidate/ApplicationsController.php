@@ -7,6 +7,7 @@ use App\Models\Application;
 use App\Models\Candidate;
 use App\Services\Applications\ApplicationService;
 use App\Services\Applications\ApplicationStatusMapper;
+use App\Services\Jobs\SchoolNameResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,11 +17,10 @@ use Illuminate\View\View;
 
 class ApplicationsController extends Controller
 {
-    /** @var array<string, ?string> Memoized org-name lookups within one request. */
-    private array $orgNameCache = [];
-
-    public function __construct(private readonly ApplicationService $applications)
-    {
+    public function __construct(
+        private readonly ApplicationService $applications,
+        private readonly SchoolNameResolver $schoolNames,
+    ) {
     }
 
     public function index(Request $request): View
@@ -93,7 +93,7 @@ class ApplicationsController extends Controller
             'id' => $app->id,
             'uuid' => $app->uuid,
             'title' => $job->title ?? 'Job posting no longer available',
-            'school' => $this->resolveOrgName($app->source_schema, $job->created_by ?? null, $job->department ?? null),
+            'school' => $this->schoolNames->resolve($app->source_schema, $job->created_by ?? null, $job->department ?? null),
             'location' => $job->location ?? null,
             'applied_on' => $app->applied_at->format('d M Y'),
             'status_label' => $meta['label'],
@@ -133,7 +133,7 @@ class ApplicationsController extends Controller
             'id' => $app->id,
             'uuid' => $app->uuid,
             'title' => $job->title ?? 'Job posting no longer available',
-            'school' => $this->resolveOrgName($sourceSchema, $job->created_by ?? null, $job->department ?? null),
+            'school' => $this->schoolNames->resolve($sourceSchema, $job->created_by ?? null, $job->department ?? null),
             'withdrawn_on' => $app->withdrawn_at->format('d M Y'),
             'reason' => $app->withdrawal_reason,
             'reason_other' => $app->withdrawal_reason_other,
@@ -183,29 +183,6 @@ class ApplicationsController extends Controller
                 ])),
             ],
         };
-    }
-
-    private function resolveOrgName(string $sourceSchema, ?int $createdBy, ?string $department): string
-    {
-        $fallback = $department ?: ($sourceSchema === 'shulesoft' ? 'A ShuleSoft School' : 'A ShuleSoft Network Client');
-
-        if (!$createdBy || $sourceSchema !== 'shulesoft') {
-            return $fallback;
-        }
-
-        $cacheKey = "{$sourceSchema}:{$createdBy}";
-        if (array_key_exists($cacheKey, $this->orgNameCache)) {
-            return $this->orgNameCache[$cacheKey] ?? $fallback;
-        }
-
-        $schemaName = DB::connection('shulesoft')->table('users')->where('id', $createdBy)->value('schema_name');
-        $schoolName = $schemaName
-            ? DB::connection('admin')->table('schools')->where('schema_name', $schemaName)->value('name')
-            : null;
-
-        $this->orgNameCache[$cacheKey] = $schoolName;
-
-        return $schoolName ?: $fallback;
     }
 
     private function progressStats($apps, int $totalSubmittedIncludingWithdrawn): array
