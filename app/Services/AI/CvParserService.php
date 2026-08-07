@@ -32,21 +32,47 @@ class CvParserService
             $text = '';
             foreach ($phpWord->getSections() as $section) {
                 foreach ($section->getElements() as $element) {
-                    if (method_exists($element, 'getText')) {
-                        $text .= $element->getText() . "\n";
-                    } elseif (method_exists($element, 'getElements')) {
-                        foreach ($element->getElements() as $inner) {
-                            if (method_exists($inner, 'getText')) {
-                                $text .= $inner->getText() . "\n";
-                            }
-                        }
-                    }
+                    $text .= $this->elementText($element);
                 }
             }
             return $text;
         }
 
         throw new \InvalidArgumentException("Unsupported CV file type: {$extension}");
+    }
+
+    /**
+     * Several PhpWord element classes define a getText() method with a
+     * different return type than plain text runs (e.g. some return an
+     * array or another element object, not a string) — calling it
+     * unconditionally crashed real CV uploads. Only trust the result when
+     * it's actually a string; recurse into containers (getElements())
+     * otherwise, and silently skip anything that yields neither.
+     */
+    private function elementText(mixed $element): string
+    {
+        if (method_exists($element, 'getText')) {
+            $value = $element->getText();
+
+            if (is_string($value)) {
+                return $value . "\n";
+            }
+
+            // A Field's text can itself be a TextRun (e.g. a MERGEFIELD) —
+            // worth recursing into rather than discarding.
+            return is_object($value) ? $this->elementText($value) : '';
+        }
+
+        if (method_exists($element, 'getElements')) {
+            $text = '';
+            foreach ($element->getElements() as $inner) {
+                $text .= $this->elementText($inner);
+            }
+
+            return $text;
+        }
+
+        return '';
     }
 
     /**
