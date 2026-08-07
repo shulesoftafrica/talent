@@ -10,6 +10,7 @@ use App\Services\Jobs\JobContentSanitizer;
 use App\Services\Jobs\SchoolNameResolver;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class JobMatchesController extends Controller
