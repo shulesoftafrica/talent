@@ -76,6 +76,33 @@ class Application extends Model
         return DB::connection($this->source_schema)->table('job_postings')->find($this->source_job_posting_id);
     }
 
+    private ?object $scheduledInterviewCache = null;
+    private bool $scheduledInterviewLoaded = false;
+
+    /**
+     * The latest interview row from shulesoft.interviews or
+     * safaribook.interviews, if the school booked one via its own
+     * "Schedule Interview" flow — live, never synced/stored on this model,
+     * same reasoning as originRow(). Many schools currently just flip the
+     * application status without booking a structured date, so this is
+     * often null even at the 'Interview Invited' stage — that reflects
+     * what the school actually recorded, not a display bug.
+     */
+    public function scheduledInterview(): ?object
+    {
+        if (!$this->scheduledInterviewLoaded) {
+            $this->scheduledInterviewCache = $this->source_application_id
+                ? DB::connection($this->source_schema)->table('interviews')
+                    ->where('application_id', $this->source_application_id)
+                    ->orderByDesc('id')
+                    ->first()
+                : null;
+            $this->scheduledInterviewLoaded = true;
+        }
+
+        return $this->scheduledInterviewCache;
+    }
+
     public function status(): string
     {
         return $this->originRow()->status ?? 'new';

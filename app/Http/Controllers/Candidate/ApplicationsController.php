@@ -10,6 +10,7 @@ use App\Services\Applications\ApplicationStatusMapper;
 use App\Services\Jobs\SchoolNameResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -77,6 +78,7 @@ class ApplicationsController extends Controller
     {
         $job = $app->jobPosting();
         $meta = $app->statusMeta();
+        $interview = $app->scheduledInterview();
         $stepLabels = ApplicationStatusMapper::stepLabels();
 
         $steps = collect($stepLabels)->map(function ($label, $idx) use ($meta) {
@@ -103,10 +105,12 @@ class ApplicationsController extends Controller
             'next_action_sub' => $meta['next_action_sub'],
             'is_rejected' => $meta['is_rejected'],
             'steps' => $steps,
-            'has_interview' => (bool) $app->interview_date,
-            'interview_date' => $app->interview_date?->format('d M Y'),
-            'interview_type' => $app->interview_type,
-            'interview_duration' => $app->interview_duration,
+            'has_interview' => (bool) $interview,
+            'interview_date' => $interview ? Carbon::parse($interview->interview_date)->format('d M Y') : null,
+            'interview_time' => $interview && $interview->interview_time ? Carbon::parse($interview->interview_time)->format('g:i A') : null,
+            'interview_type' => $interview && $interview->interview_type ? ucwords(str_replace('_', ' ', $interview->interview_type)) : null,
+            'interview_duration' => $interview->duration ?? null,
+            'interview_location' => $interview->location ?? null,
             'interview_response' => $app->interview_response,
             'interview_response_note' => $app->interview_response_note,
             'awaiting_interview_response' => $meta['label'] === 'Interview Invited' && !$app->interview_response,

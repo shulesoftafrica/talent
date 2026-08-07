@@ -125,11 +125,17 @@
                             @if ($selected['has_interview'])
                                 <div class="flex flex-wrap gap-2 mt-2.5">
                                     <span class="rounded-full border border-ttn-border bg-ttn-card px-2.5 py-1 text-[11px] font-semibold">{{ __('applications.interview', ['date' => $selected['interview_date']]) }}</span>
+                                    @if ($selected['interview_time'])
+                                        <span class="rounded-full border border-ttn-border bg-ttn-card px-2.5 py-1 text-[11px] font-semibold">{{ __('applications.interview_time', ['x' => $selected['interview_time']]) }}</span>
+                                    @endif
                                     @if ($selected['interview_type'])
                                         <span class="rounded-full border border-ttn-border bg-ttn-card px-2.5 py-1 text-[11px] font-semibold">{{ __('applications.interview_type', ['x' => $selected['interview_type']]) }}</span>
                                     @endif
                                     @if ($selected['interview_duration'])
                                         <span class="rounded-full border border-ttn-border bg-ttn-card px-2.5 py-1 text-[11px] font-semibold">{{ __('applications.interview_duration', ['x' => $selected['interview_duration']]) }}</span>
+                                    @endif
+                                    @if ($selected['interview_location'])
+                                        <span class="rounded-full border border-ttn-border bg-ttn-card px-2.5 py-1 text-[11px] font-semibold">{{ __('applications.interview_location', ['x' => $selected['interview_location']]) }}</span>
                                     @endif
                                 </div>
                             @endif
