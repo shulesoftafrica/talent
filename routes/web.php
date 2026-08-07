@@ -8,6 +8,7 @@ use App\Http\Controllers\Candidate\ApplicationsController;
 use App\Http\Controllers\Candidate\ApplicationWithdrawalController;
 use App\Http\Controllers\Candidate\CareerBuilderController;
 use App\Http\Controllers\Candidate\IdentityVerificationController;
+use App\Http\Controllers\Candidate\InterviewResponseController;
 use App\Http\Controllers\Candidate\BackgroundVerificationController;
 use App\Http\Controllers\Candidate\EducationVerificationController;
 use App\Http\Controllers\Candidate\EmploymentVerificationController;
@@ -91,6 +92,7 @@ Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->pref
         Route::post('/apply', [ApplicationsController::class, 'apply'])->name('apply');
         Route::post('/{application}/withdraw', [ApplicationWithdrawalController::class, 'store'])->name('withdraw');
         Route::post('/{application}/withdrawal-details', [ApplicationWithdrawalController::class, 'storeOfferDetails'])->name('withdrawal-details');
+        Route::post('/{application}/interview-response', [InterviewResponseController::class, 'store'])->name('interview-response');
     });
 
     Route::get('/notifications/{notification}/open', [NotificationsController::class, 'open'])->name('notifications.open');

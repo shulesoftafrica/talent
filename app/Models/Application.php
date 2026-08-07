@@ -17,6 +17,7 @@ class Application extends Model
         'candidate_id', 'source_schema', 'source_job_posting_id', 'source_application_id',
         'last_seen_status', 'ai_health_score', 'ai_health_label', 'ai_health_why', 'ai_health_missing',
         'interview_date', 'interview_type', 'interview_duration', 'applied_at',
+        'interview_response', 'interview_response_note', 'interview_responded_at',
         'withdrawal_reason', 'withdrawal_reason_other', 'withdrawn_at',
         'new_employer_name', 'new_position', 'new_start_date', 'found_via_shulesoft',
     ];
@@ -27,6 +28,7 @@ class Application extends Model
             'ai_health_why' => 'array',
             'interview_date' => 'date',
             'applied_at' => 'datetime',
+            'interview_responded_at' => 'datetime',
             'withdrawn_at' => 'datetime',
             'new_start_date' => 'date',
             'found_via_shulesoft' => 'boolean',

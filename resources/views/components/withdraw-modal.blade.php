@@ -1,8 +1,9 @@
-@props(['app'])
+@props(['app', 'label' => null, 'compact' => false])
 
-<div x-data="{ manageOpen: false, step: 'choice', reason: '' }" class="px-3 pb-2.5 -mt-1">
-    <button @click.prevent="manageOpen = true" type="button" class="text-[10.5px] font-bold text-ttn-text2 hover:text-ttn-primary-dark cursor-pointer">
-        {{ __('applications.manage') }}
+<div x-data="{ manageOpen: false, step: 'choice', reason: '' }" class="{{ $compact ? '' : 'px-3 pb-2.5 -mt-1' }}">
+    <button @click.prevent="manageOpen = true" type="button"
+            class="{{ $compact ? 'rounded-lg border border-ttn-primary-dark/30 px-3 py-2 text-[11.5px] font-bold text-ttn-primary-dark' : 'text-[10.5px] font-bold text-ttn-text2 hover:text-ttn-primary-dark' }} cursor-pointer">
+        {{ $label ?? __('applications.manage') }}
     </button>
 
     <div x-show="manageOpen" x-cloak @click.self="manageOpen = false" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-5">

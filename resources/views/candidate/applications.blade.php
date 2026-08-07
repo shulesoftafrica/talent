@@ -136,12 +136,39 @@
                         </div>
                     @endif
 
-                    <div class="flex justify-between items-center rounded-lg bg-ttn-primary-light px-4 py-3 mb-3.5 gap-3 flex-wrap">
-                        <div>
-                            <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-primary-dark mb-0.5">{{ __('applications.next_action') }}</div>
-                            <div class="text-[13.5px] font-bold text-ttn-primary-dark">{{ $selected['next_action_label'] }}</div>
-                            <div class="text-[11.5px] text-ttn-primary-dark mt-0.5">{{ $selected['next_action_sub'] }}</div>
+                    <div class="rounded-lg bg-ttn-primary-light px-4 py-3 mb-3.5">
+                        <div class="flex justify-between items-center gap-3 flex-wrap">
+                            <div>
+                                <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-primary-dark mb-0.5">{{ __('applications.next_action') }}</div>
+                                <div class="text-[13.5px] font-bold text-ttn-primary-dark">{{ $selected['next_action_label'] }}</div>
+                                <div class="text-[11.5px] text-ttn-primary-dark mt-0.5">{{ $selected['next_action_sub'] }}</div>
+                            </div>
                         </div>
+
+                        @if ($selected['awaiting_interview_response'])
+                            <div x-data="{ noting: false, note: '' }" class="mt-3 pt-3 border-t border-ttn-primary-dark/20">
+                                <div x-show="noting" x-cloak>
+                                    <textarea form="interview-response-form" name="note" rows="2" maxlength="500" placeholder="{{ __('applications.interview_note_placeholder') }}" x-model="note" class="w-full rounded-lg border border-ttn-border px-3 py-2 text-[12.5px] bg-ttn-card mb-2"></textarea>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <form id="interview-response-form" method="POST" action="{{ route('candidate.applications.interview-response', $selected['uuid']) }}">
+                                        @csrf
+                                        <button type="submit" class="rounded-lg bg-ttn-primary px-4 py-2 text-[12.5px] font-bold text-white cursor-pointer">{{ __('applications.confirm_attendance') }}</button>
+                                    </form>
+                                    <button type="button" @click="noting = !noting" class="rounded-lg border border-ttn-primary-dark/30 px-3 py-2 text-[11.5px] font-bold text-ttn-primary-dark cursor-pointer">
+                                        <span x-text="noting ? @js(__('common.cancel')) : @js(__('applications.add_note'))"></span>
+                                    </button>
+                                    <x-withdraw-modal :app="$selected" :label="__('applications.cant_attend')" :compact="true" />
+                                </div>
+                            </div>
+                        @elseif ($selected['interview_response'] === 'confirmed')
+                            <div class="mt-3 pt-3 border-t border-ttn-primary-dark/20 text-[12.5px] font-semibold text-ttn-primary-dark">
+                                ✓ {{ __('applications.attendance_confirmed') }}
+                                @if ($selected['interview_response_note'])
+                                    <div class="text-[11.5px] font-normal text-ttn-text2 mt-1">"{{ $selected['interview_response_note'] }}"</div>
+                                @endif
+                            </div>
+                        @endif
                     </div>
 
                     <div class="rounded-lg border border-ttn-border p-4 mb-3.5">
