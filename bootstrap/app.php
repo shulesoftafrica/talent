@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\TrackUserActivity;
+use App\Http\Middleware\VerifyInternalApiKey;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -10,10 +11,13 @@ use Illuminate\Http\Request;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias(['verify.internal.key' => VerifyInternalApiKey::class]);
+
         // Neither guard has a 'login'-named route — candidates authenticate
         // via OTP from the landing page, officers via a plain form — so send
         // unauthenticated guests to the right one instead of letting the

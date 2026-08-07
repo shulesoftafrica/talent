@@ -45,7 +45,17 @@ class JobMatchScorer
         // with no such risk.
         $cacheKey = $this->cacheKey($candidate, $jobs);
 
-        $scoresByKey = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($candidate, $jobs) {
+        // Effectively permanent, not a rolling 10-minute window: the AI does
+        // not return the same score for the same input on every call, so a
+        // short TTL meant a hiring manager and the candidate could each
+        // trigger their own fresh (and different) AI call and see two
+        // different numbers for the same job. The cache KEY already
+        // fingerprints both the candidate's profile and the active job set
+        // (see cacheKey() below), so it naturally busts itself the moment
+        // either actually changes — there is no staleness risk in holding
+        // it indefinitely otherwise, and it's the only way to guarantee
+        // every viewer sees the exact same number.
+        $scoresByKey = Cache::remember($cacheKey, now()->addYears(5), function () use ($candidate, $jobs) {
             $aiScores = $this->scoreWithAi($candidate, $jobs);
 
             $result = [];

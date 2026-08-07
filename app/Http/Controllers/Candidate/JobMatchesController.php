@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Candidate;
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Services\AI\JobMatchScorer;
+use App\Services\Jobs\ActiveJobsRepository;
 use App\Services\Jobs\JobContentSanitizer;
 use App\Services\Jobs\SchoolNameResolver;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class JobMatchesController extends Controller
@@ -21,6 +21,7 @@ class JobMatchesController extends Controller
         private readonly JobMatchScorer $matcher,
         private readonly SchoolNameResolver $schoolNames,
         private readonly JobContentSanitizer $sanitizer,
+        private readonly ActiveJobsRepository $activeJobs,
     ) {
     }
 
@@ -29,7 +30,7 @@ class JobMatchesController extends Controller
         /** @var Candidate $candidate */
         $candidate = Auth::guard('candidate')->user();
 
-        $jobs = $this->matcher->score($candidate, $this->fetchActiveJobs())
+        $jobs = $this->matcher->score($candidate, $this->activeJobs->fetchActive())
             ->map(fn ($job) => $this->withDisplayFields($job))
             ->sortByDesc('match_score')
             ->values();
@@ -89,7 +90,7 @@ class JobMatchesController extends Controller
             ]);
         }
 
-        $job = $this->matcher->score($candidate, $this->fetchActiveJobs())
+        $job = $this->matcher->score($candidate, $this->activeJobs->fetchActive())
             ->map(fn ($j) => $this->withDisplayFields($j))
             ->first(fn ($j) => $j['source_schema'] === $sourceSchema && (int) $j['id'] === $jobPostingId);
 
@@ -106,29 +107,6 @@ class JobMatchesController extends Controller
             'sourceSchema' => $sourceSchema,
             'jobPostingId' => $jobPostingId,
         ]);
-    }
-
-    /**
-     * Read-only UNION ALL feed across the two recruitment schemas. Done as
-     * two separate connection queries merged in PHP rather than a real SQL
-     * UNION ALL, since 'shulesoft' and 'safaribook' are modeled as separate
-     * Laravel connections (even though physically the same Postgres server).
-     */
-    private function fetchActiveJobs()
-    {
-        $columns = ['id', 'title', 'department', 'location', 'salary_min', 'salary_max', 'employment_type', 'application_deadline', 'created_at'];
-
-        $shulesoft = DB::connection('shulesoft')->table('job_postings')
-            ->where('status', 'active')
-            ->get($columns)
-            ->map(fn ($row) => (array) $row + ['source_schema' => 'shulesoft']);
-
-        $safaribook = DB::connection('safaribook')->table('job_postings')
-            ->where('status', 'active')
-            ->get($columns)
-            ->map(fn ($row) => (array) $row + ['source_schema' => 'safaribook']);
-
-        return $shulesoft->concat($safaribook);
     }
 
     /**

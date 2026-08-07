@@ -104,4 +104,17 @@ return [
         'url' => env('ACADEMY_URL', 'http://localhost/academy'),
     ],
 
+    // Shared secret for ShuleSoft's hiring-manager side to request a
+    // candidate's job-match score for one posting via routes/api.php ->
+    // Api\JobMatchController. This exists so the hiring manager and the
+    // candidate ALWAYS see the exact same number, computed once here by
+    // JobMatchScorer, instead of ShuleSoft re-deriving its own separate
+    // estimate against a different (and inevitably drifting) set of
+    // criteria. Single shared key, no per-tenant lookup — mirrors how
+    // ShuleSoft's own SafariBookBillingClient authenticates internal
+    // server-to-server calls.
+    'shulesoft_internal' => [
+        'api_key' => env('SHULESOFT_INTERNAL_API_KEY'),
+    ],
+
 ];
