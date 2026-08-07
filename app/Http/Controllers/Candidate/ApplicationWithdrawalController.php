@@ -61,6 +61,24 @@ class ApplicationWithdrawalController extends Controller
             ->where('id', $application->source_application_id)
             ->update(['status' => 'rejected', 'updated_at' => now()]);
 
+        // Withdrawing only ever flipped the application's own status —
+        // any interview the school had booked for this application kept
+        // sitting there as 'scheduled'/'rescheduled', so the recruiter's
+        // Interviews list kept showing it as upcoming even though the
+        // candidate had already pulled out. Cancel it the same way the
+        // school's own "Cancel Interview" action does, so both views agree.
+        $connection = DB::connection($application->source_schema);
+        $cancelNote = "\nCancelled: candidate withdrew their application via the Talent Network.";
+
+        $connection->table('interviews')
+            ->where('application_id', $application->source_application_id)
+            ->whereIn('status', ['scheduled', 'rescheduled'])
+            ->update([
+                'status' => 'cancelled',
+                'notes' => DB::raw("coalesce(notes, '') || " . $connection->getPdo()->quote($cancelNote)),
+                'updated_at' => now(),
+            ]);
+
         if ($data['reason'] === 'accepted_other_offer') {
             session()->flash('withdrawal_offer_prompt', $application->uuid);
         }

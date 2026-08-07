@@ -87,6 +87,11 @@ class Application extends Model
      * application status without booking a structured date, so this is
      * often null even at the 'Interview Invited' stage — that reflects
      * what the school actually recorded, not a display bug.
+     *
+     * Excludes 'cancelled' rows deliberately: the school cancelling an
+     * interview updates this same row in place (no new row created), so
+     * without this filter a cancelled interview kept showing here exactly
+     * as if it were still upcoming.
      */
     public function scheduledInterview(): ?object
     {
@@ -94,6 +99,7 @@ class Application extends Model
             $this->scheduledInterviewCache = $this->source_application_id
                 ? DB::connection($this->source_schema)->table('interviews')
                     ->where('application_id', $this->source_application_id)
+                    ->where('status', '!=', 'cancelled')
                     ->orderByDesc('id')
                     ->first()
                 : null;
