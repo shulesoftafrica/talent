@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Candidate;
 
 use App\Http\Controllers\Controller;
 use App\Models\Application;
+use App\Services\Applications\HiringManagerNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,6 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class InterviewResponseController extends Controller
 {
+    public function __construct(private readonly HiringManagerNotifier $notifier)
+    {
+    }
+
     /**
      * Lets a candidate confirm they'll attend an interview they've been
      * invited to, with an optional note — the only thing this stage
@@ -50,6 +55,8 @@ class InterviewResponseController extends Controller
                 'notes' => DB::raw("coalesce(notes, '') || " . DB::connection($application->source_schema)->getPdo()->quote("\n" . $noteLine)),
                 'updated_at' => now(),
             ]);
+
+        $this->notifier->notify($application, 'accepted', $data['note'] ?? null);
 
         return redirect()
             ->route('candidate.applications.index', ['selected' => $application->uuid])

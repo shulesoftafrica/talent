@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Candidate;
 use App\Http\Controllers\Controller;
 use App\Models\Application;
 use App\Models\Candidate;
+use App\Services\Applications\HiringManagerNotifier;
 use App\Services\Applications\WithdrawalReason;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,10 @@ use Illuminate\Validation\Rule;
 
 class ApplicationWithdrawalController extends Controller
 {
+    public function __construct(private readonly HiringManagerNotifier $notifier)
+    {
+    }
+
     /**
      * Withdraws a candidate from a single job's recruitment pipeline. The
      * origin school's own applications row only ever gets its status
@@ -35,6 +40,16 @@ class ApplicationWithdrawalController extends Controller
             ]);
         }
 
+        // Whether this withdrawal is really "declining an interview" —
+        // keyed off an actual live, non-cancelled interview row rather than
+        // applications.status === 'interview_scheduled', because not every
+        // school's own flow reliably sets that exact status when it books
+        // one (bulk scheduling, manual edits, etc. can leave it on
+        // 'shortlisted' or similar even with a real interview on the
+        // books). scheduledInterview() is the same live cross-schema read
+        // the candidate's own "Interview Invited" UI already trusts.
+        $pendingInterview = $application->scheduledInterview();
+
         $data = $request->validate([
             'reason' => ['required', Rule::in(WithdrawalReason::KEYS)],
             'reason_other' => ['required_if:reason,other', 'nullable', 'string', 'max:500'],
@@ -44,6 +59,10 @@ class ApplicationWithdrawalController extends Controller
             'withdrawal_reason' => $data['reason'],
             'withdrawal_reason_other' => $data['reason'] === 'other' ? $data['reason_other'] : null,
             'withdrawn_at' => now(),
+            ...($pendingInterview ? [
+                'interview_response' => 'declined',
+                'interview_responded_at' => now(),
+            ] : []),
         ]);
 
         // The only signal the school's own tooling ever gets: this row is no
@@ -78,6 +97,10 @@ class ApplicationWithdrawalController extends Controller
                 'notes' => DB::raw("coalesce(notes, '') || " . $connection->getPdo()->quote($cancelNote)),
                 'updated_at' => now(),
             ]);
+
+        if ($pendingInterview) {
+            $this->notifier->notify($application, 'declined');
+        }
 
         if ($data['reason'] === 'accepted_other_offer') {
             session()->flash('withdrawal_offer_prompt', $application->uuid);
