@@ -69,12 +69,20 @@ $notifications = app(UnifiedNotificationClient::class);
 $landingUrl = 'https://talent.shulesoft.africa';
 $logoUrl = 'https://talent.shulesoft.africa/logo.png';
 
+// The notification API rejects any message over 4096 characters
+// (confirmed live: a first, more spacious version of this template hit
+// that limit and every send failed). The current template renders well
+// under it, but this collapses incidental whitespace as a safety margin
+// against future edits creeping back over the limit — HTML doesn't care
+// about whitespace between tags, so this is visually a no-op.
 $buildMessage = function (?string $name) use ($landingUrl, $logoUrl): string {
-    return view('emails.candidate-invite', [
+    $html = view('emails.candidate-invite', [
         'name' => $name,
         'ctaUrl' => $landingUrl,
         'logoUrl' => $logoUrl,
     ])->render();
+
+    return preg_replace('/>\s+</', '><', trim(preg_replace('/\s+/', ' ', $html)));
 };
 
 $subject = '600+ schools are hiring on ShuleSoft — create your free profile';
@@ -123,11 +131,20 @@ while (($row = fgetcsv($inHandle)) !== false) {
         continue;
     }
 
+    $message = $buildMessage($name ?: null);
+
+    if (strlen($message) > 4096) {
+        fputcsv($resultsHandle, [$email, $name, 'failed', 'rendered message exceeds the API\'s 4096-char limit (' . strlen($message) . ' chars) — template needs trimming, not a per-recipient issue', now()->toDateTimeString()]);
+        $counts['failed']++;
+        $processed++;
+        continue;
+    }
+
     $result = $notifications->send([
         'channel' => 'email',
         'to' => $email,
         'subject' => $subject,
-        'message' => $buildMessage($name ?: null),
+        'message' => $message,
     ]);
 
     if ($result) {
