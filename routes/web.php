@@ -30,6 +30,7 @@ use App\Http\Controllers\Officer\AiUsageController as OfficerAiUsageController;
 use App\Http\Controllers\Officer\AnalyticsController as OfficerAnalyticsController;
 use App\Http\Controllers\Officer\AuthController as OfficerAuthController;
 use App\Http\Controllers\Officer\DashboardController as OfficerDashboardController;
+use App\Http\Controllers\Officer\OtpController as OfficerOtpController;
 use App\Http\Controllers\Officer\QueueController as OfficerQueueController;
 use App\Http\Middleware\EnsureOfficerHasVerificationAccess;
 use App\Http\Middleware\SyncApplicationNotifications;
@@ -193,6 +194,12 @@ Route::prefix('officer')->name('officer.')->group(function () {
     Route::get('/login', [OfficerAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [OfficerAuthController::class, 'login'])->name('login.submit');
     Route::post('/logout', [OfficerAuthController::class, 'logout'])->middleware('auth:officer')->name('logout');
+
+    Route::prefix('otp')->name('otp.')->group(function () {
+        Route::post('/send', [OfficerOtpController::class, 'send'])->name('send');
+        Route::post('/resend', [OfficerOtpController::class, 'resend'])->name('resend');
+        Route::post('/verify', [OfficerOtpController::class, 'verify'])->name('verify');
+    });
 
     Route::middleware(['auth:officer', EnsureOfficerHasVerificationAccess::class])->group(function () {
         Route::get('/', [OfficerDashboardController::class, 'index'])->name('dashboard');
