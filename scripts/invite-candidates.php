@@ -37,7 +37,11 @@ $resultsPath = getenv('INVITE_RESULTS_PATH') !== false ? getenv('INVITE_RESULTS_
 $dryRun = (getenv('INVITE_DRY_RUN') !== false ? getenv('INVITE_DRY_RUN') : '1') === '1';
 $limit = (int) (getenv('INVITE_LIMIT') !== false ? getenv('INVITE_LIMIT') : 0);
 $ignoreExisting = getenv('INVITE_IGNORE_EXISTING') === '1';
-$delayMicroseconds = 300_000; // 0.3s between real sends — gentle on the notification API
+// The notification API rate-limits to 2 requests/second (confirmed live via
+// a 429 "Rate limit exceeded... Limit: 2 requests per 1 second(s)" response
+// that killed ~40% of an early batch run) — 600ms keeps us at ~1.7 req/s,
+// comfortably under that even with a little timing jitter.
+$delayMicroseconds = 600_000;
 
 if (!file_exists($csvPath)) {
     echo "Input CSV not found: {$csvPath}\n";
@@ -140,18 +144,31 @@ while (($row = fgetcsv($inHandle)) !== false) {
         continue;
     }
 
-    $result = $notifications->send([
-        'channel' => 'email',
-        'to' => $email,
-        'subject' => $subject,
-        'message' => $message,
-    ]);
+    $result = null;
+    $attempts = 0;
+    while ($attempts < 3) {
+        $attempts++;
+        $result = $notifications->send([
+            'channel' => 'email',
+            'to' => $email,
+            'subject' => $subject,
+            'message' => $message,
+        ]);
+        if ($result || $attempts >= 3) {
+            break;
+        }
+        // A failure here is almost always the API's 2 req/s rate limit even
+        // at our throttled pace (jitter, or another process sharing the
+        // same limit) — a short backoff clears it without treating a
+        // transient 429 as a permanent per-recipient failure.
+        sleep(2);
+    }
 
     if ($result) {
         fputcsv($resultsHandle, [$email, $name, 'sent', '', now()->toDateTimeString()]);
         $counts['sent']++;
     } else {
-        fputcsv($resultsHandle, [$email, $name, 'failed', 'notification API call failed — see laravel.log', now()->toDateTimeString()]);
+        fputcsv($resultsHandle, [$email, $name, 'failed', 'notification API call failed after 3 attempts — see laravel.log', now()->toDateTimeString()]);
         $counts['failed']++;
     }
 
