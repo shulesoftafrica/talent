@@ -85,7 +85,7 @@ $buildMessage = function (?string $name) use ($landingUrl, $logoUrl): string {
     return preg_replace('/>\s+</', '><', trim(preg_replace('/\s+/', ' ', $html)));
 };
 
-$subject = '600+ schools are hiring on ShuleSoft — create your free profile';
+$subject = "You're Invited: Join the ShuleSoft Talent Network";
 
 $inHandle = fopen($csvPath, 'r');
 $inHeader = array_map(fn ($h) => strtolower(trim($h)), fgetcsv($inHandle));
