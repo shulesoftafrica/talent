@@ -18,15 +18,25 @@
  *   INVITE_RESULTS_PATH — output CSV path (created/appended).
  *   INVITE_DRY_RUN     — '1' (default) previews only, sends nothing.
  *   INVITE_LIMIT       — max rows to actually process this run (0 = no limit).
+ *   INVITE_IGNORE_EXISTING — '1' to send even to an email that's already a
+ *                            registered candidate. Only for deliverability
+ *                            testing against your own address — leave unset
+ *                            for the real batch, where skipping existing
+ *                            candidates is the whole point.
  */
 
 use App\Services\Notifications\UnifiedNotificationClient;
 use App\Models\Candidate;
 
-$csvPath = getenv('INVITE_CSV_PATH') ?: '/tmp/candidate_invite_list.csv';
-$resultsPath = getenv('INVITE_RESULTS_PATH') ?: '/tmp/candidate_invite_results.csv';
-$dryRun = (getenv('INVITE_DRY_RUN') ?: '1') === '1';
-$limit = (int) (getenv('INVITE_LIMIT') ?: 0);
+// getenv() returns the literal string '0' when INVITE_DRY_RUN=0 is set,
+// and PHP's ?: treats "0" as falsy — using it here would silently fall
+// back to the dry-run default and ignore an explicit request to send for
+// real, so this checks presence with !== false instead.
+$csvPath = getenv('INVITE_CSV_PATH') !== false ? getenv('INVITE_CSV_PATH') : '/tmp/candidate_invite_list.csv';
+$resultsPath = getenv('INVITE_RESULTS_PATH') !== false ? getenv('INVITE_RESULTS_PATH') : '/tmp/candidate_invite_results.csv';
+$dryRun = (getenv('INVITE_DRY_RUN') !== false ? getenv('INVITE_DRY_RUN') : '1') === '1';
+$limit = (int) (getenv('INVITE_LIMIT') !== false ? getenv('INVITE_LIMIT') : 0);
+$ignoreExisting = getenv('INVITE_IGNORE_EXISTING') === '1';
 $delayMicroseconds = 300_000; // 0.3s between real sends — gentle on the notification API
 
 if (!file_exists($csvPath)) {
@@ -97,7 +107,7 @@ while (($row = fgetcsv($inHandle)) !== false) {
         continue;
     }
 
-    if (Candidate::where('email', $email)->exists()) {
+    if (!$ignoreExisting && Candidate::where('email', $email)->exists()) {
         fputcsv($resultsHandle, [$email, $name, 'skipped_existing', 'already a registered candidate', now()->toDateTimeString()]);
         $counts['skipped_existing']++;
         continue;
