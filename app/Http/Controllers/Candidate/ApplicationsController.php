@@ -7,6 +7,7 @@ use App\Models\Application;
 use App\Models\Candidate;
 use App\Services\Applications\ApplicationService;
 use App\Services\Applications\ApplicationStatusMapper;
+use App\Services\Candidates\ProfileCompletionService;
 use App\Services\Jobs\SchoolNameResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class ApplicationsController extends Controller
     public function __construct(
         private readonly ApplicationService $applications,
         private readonly SchoolNameResolver $schoolNames,
+        private readonly ProfileCompletionService $profileCompletionService,
     ) {
     }
 
@@ -28,6 +30,12 @@ class ApplicationsController extends Controller
     {
         /** @var Candidate $candidate */
         $candidate = Auth::guard('candidate')->user();
+
+        // Only needed for the post-apply confirmation modal's profile-strength
+        // nudge, but loaded unconditionally here (cheap on a candidate who
+        // just applied) rather than after $justApplied is known, to avoid a
+        // second round trip through Auth — see profileCompletion() below.
+        $candidate->loadMissing(['experiences', 'educations', 'portfolioItems', 'skills']);
 
         $allApps = $candidate->applications()->orderByDesc('applied_at')->get();
         $activeApps = $allApps->whereNull('withdrawn_at');
@@ -62,34 +70,8 @@ class ApplicationsController extends Controller
             'progressStats' => $this->progressStats($apps, $allApps->count()),
             'offerPromptApplicationId' => session('withdrawal_offer_prompt'),
             'justApplied' => $justApplied,
-            'profileCompletion' => $justApplied ? $this->profileCompletion($candidate) : [],
+            'profileCompletion' => $justApplied ? $this->profileCompletionService->sections($candidate) : [],
         ]);
-    }
-
-    /**
-     * Same per-section signals as ProfileController::profileCompletion() —
-     * duplicated rather than shared because that method is private to a
-     * controller with a different constructor; kept here as the small,
-     * stable list it is rather than introducing a shared service for two
-     * call sites.
-     *
-     * @return array<int, array{label: string, pct: int}>
-     */
-    private function profileCompletion(Candidate $candidate): array
-    {
-        $sections = [
-            ['label' => 'Personal Information', 'pct' => $candidate->full_name && $candidate->current_location ? 100 : 60],
-            ['label' => 'Experience', 'pct' => $candidate->experiences->isNotEmpty() ? 100 : 0],
-            ['label' => 'Education', 'pct' => $candidate->educations->isNotEmpty() ? 100 : 0],
-            ['label' => 'Portfolio', 'pct' => min(100, $candidate->portfolioItems->count() * 50)],
-            ['label' => 'Skills', 'pct' => min(100, $candidate->skills->count() * 25)],
-        ];
-
-        if (config('services.verification_enabled')) {
-            $sections[] = ['label' => 'Verification', 'pct' => (int) $candidate->verificationItems()->where('status', \App\Services\Verification\VerificationStatus::VERIFIED)->count() * 17];
-        }
-
-        return $sections;
     }
 
     public function apply(Request $request): RedirectResponse

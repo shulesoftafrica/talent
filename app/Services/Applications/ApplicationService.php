@@ -5,6 +5,7 @@ namespace App\Services\Applications;
 use App\Models\Application;
 use App\Models\Candidate;
 use App\Services\Verification\VerificationStatus;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -47,10 +48,27 @@ class ApplicationService
             return $existing;
         }
 
+        // Deliberately re-fetched here even when a caller (e.g. OtpController's
+        // auto-apply, via ActiveJobsRepository::findActiveByUuid) already
+        // fetched this same row moments ago — an OTP round trip can take
+        // minutes, so this is the freshness check, not redundant work: it's
+        // the one point every apply path shares where "is this job still
+        // open right now" gets a real, current answer.
         $jobPosting = DB::connection($sourceSchema)->table('job_postings')
             ->where('id', $jobPostingId)
             ->where('status', 'active')
             ->first();
+
+        // Status alone doesn't tell the whole story — a posting can sit at
+        // status='active' past its own deadline (nothing auto-closes it),
+        // and the public vacancy page already shows such a posting as
+        // "closed" with Apply hidden. This is the one true write gate for
+        // every apply path, so the deadline has to be enforced here too or
+        // a candidate mid-signup when the deadline passes (or a replayed
+        // request) can still create an application the UI says is closed.
+        if ($jobPosting && $jobPosting->application_deadline && Carbon::parse($jobPosting->application_deadline)->isPast()) {
+            $jobPosting = null;
+        }
 
         if (!$jobPosting) {
             throw ValidationException::withMessages(['job' => 'This job is no longer accepting applications.']);

@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -153,8 +154,17 @@ class OtpController extends Controller
 
                     $redirect = route('candidate.applications.index', ['selected' => $application->uuid, 'applied' => 1]);
                 }
-            } catch (ValidationException $e) {
-                // Job no longer active — fall through to the default redirect.
+            } catch (\Throwable $e) {
+                // Genuinely best-effort: login has already succeeded and
+                // committed (Auth::login()/session()->regenerate() above),
+                // so nothing from this side effect — an expired job
+                // (ValidationException) or an infrastructure hiccup on the
+                // origin schema — may ever surface as a login failure.
+                // Still logged, since a swallowed non-validation exception
+                // here would otherwise vanish with no trace.
+                if (!$e instanceof ValidationException) {
+                    Log::error('OtpController: post-login auto-apply failed', ['message' => $e->getMessage(), 'apply_uuid' => $data['apply_uuid']]);
+                }
             }
         }
 

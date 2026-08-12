@@ -71,16 +71,26 @@ class ActiveJobsRepository
 
     /**
      * Same lookup, but only returns a result when the posting is actually
-     * open for applications — used by every "apply" write path (Otp
-     * Controller's post-login auto-apply, ApplicationsController::apply via
-     * ApplicationService) so a stale/closed link can never be used to
-     * sneak in an application, even if the public page itself is still
-     * viewable for a closed posting.
+     * open for applications right now — status='active' AND its deadline
+     * (if any) hasn't passed — used by the OTP post-login auto-apply path
+     * so a stale/closed/expired link doesn't even attempt to apply. This
+     * is a convenience short-circuit, not the sole guarantee: the real,
+     * authoritative check lives in ApplicationService::apply() itself
+     * (every apply path, including this one, goes through it), since a
+     * deadline can pass in the gap between this lookup and the write.
      */
     public function findActiveByUuid(string $uuid): ?array
     {
         $job = $this->findByUuid($uuid);
 
-        return $job && $job['status'] === 'active' ? $job : null;
+        if (!$job || $job['status'] !== 'active') {
+            return null;
+        }
+
+        if (!empty($job['application_deadline']) && \Illuminate\Support\Carbon::parse($job['application_deadline'])->isPast()) {
+            return null;
+        }
+
+        return $job;
     }
 }

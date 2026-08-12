@@ -7,8 +7,8 @@ use App\Models\Candidate;
 use App\Models\Constant\ReferCity;
 use App\Models\Constant\ReferCountry;
 use App\Services\CareerBuilder\CareerBuilderDataService;
+use App\Services\Candidates\ProfileCompletionService;
 use App\Services\Location\CountryDetectionService;
-use App\Services\Verification\VerificationStatus;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -17,6 +17,7 @@ class ProfileController extends Controller
     public function __construct(
         private readonly CareerBuilderDataService $careerBuilder,
         private readonly CountryDetectionService $countryDetection,
+        private readonly ProfileCompletionService $profileCompletionService,
     ) {
     }
 
@@ -82,21 +83,6 @@ class ProfileController extends Controller
      */
     private function profileCompletion(Candidate $candidate): array
     {
-        $sections = [
-            ['label' => 'Personal Information', 'pct' => $candidate->full_name && $candidate->current_location ? 100 : 60],
-            ['label' => 'Experience', 'pct' => $candidate->experiences->isNotEmpty() ? 100 : 0],
-            ['label' => 'Education', 'pct' => $candidate->educations->isNotEmpty() ? 100 : 0],
-            ['label' => 'Portfolio', 'pct' => min(100, $candidate->portfolioItems->count() * 50)],
-            ['label' => 'Skills', 'pct' => min(100, $candidate->skills->count() * 25)],
-        ];
-
-        // Verification is behind a global kill-switch until the business
-        // launches it — showing this row (permanently stuck at 0%, since
-        // nothing can be verified while it's off) would be a dead end.
-        if (config('services.verification_enabled')) {
-            $sections[] = ['label' => 'Verification', 'pct' => (int) $candidate->verificationItems()->where('status', VerificationStatus::VERIFIED)->count() * 17];
-        }
-
-        return $sections;
+        return $this->profileCompletionService->sections($candidate);
     }
 }
