@@ -22,6 +22,15 @@ return [
     'no_location_data' => 'Aucune donnée de lieu pour le moment.',
     'no_profession_data' => 'Aucune donnée de profession pour le moment.',
 
+    'subject_balance_title' => 'Matière enseignée · offre contre demande',
+    'subject_balance_subtitle' => 'Candidats listant une matière contre les postes actifs qui la demandent — plus grandes pénuries en premier.',
+    'subject_balance_empty' => 'Aucune donnée de matière enseignée pour le moment — candidats et écoles n\'ont pas encore renseigné de matières.',
+    'subject_balance_col_area' => 'Matière',
+    'subject_balance_col_candidates' => 'Candidats',
+    'subject_balance_col_jobs' => 'Postes Ouverts',
+    'subject_balance_col_balance' => 'Équilibre',
+    'subject_balance_col_gap' => 'Écart',
+
     'queue_title' => 'File de Travail Basée sur le Risque',
     'queue_subtitle' => 'Triée du plus ancien au plus récent — commencez par le haut.',
     'col_candidate' => 'Candidat',

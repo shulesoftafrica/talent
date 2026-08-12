@@ -53,5 +53,54 @@
                 </div>
             </div>
         </div>
+
+        <div class="rounded-2xl border border-ttn-border bg-ttn-card p-5 mt-3.5">
+            <div class="font-display text-[15px] font-bold mb-0.5">{{ __('officer.subject_balance_title') }}</div>
+            <div class="text-[11.5px] text-ttn-text2 mb-4">{{ __('officer.subject_balance_subtitle') }}</div>
+
+            @if (empty($subjectBalance))
+                <div class="text-[13px] text-ttn-text2">{{ __('officer.subject_balance_empty') }}</div>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-[12.5px] min-w-[560px]">
+                        <thead>
+                            <tr class="text-[10.5px] font-bold uppercase tracking-wide text-ttn-text2 border-b border-ttn-border">
+                                <th class="text-left py-2 pr-2 font-bold">{{ __('officer.subject_balance_col_area') }}</th>
+                                <th class="text-right py-2 px-2 font-bold">{{ __('officer.subject_balance_col_candidates') }}</th>
+                                <th class="text-right py-2 px-2 font-bold">{{ __('officer.subject_balance_col_jobs') }}</th>
+                                <th class="py-2 px-2 font-bold w-[160px]">{{ __('officer.subject_balance_col_balance') }}</th>
+                                <th class="text-right py-2 pl-2 font-bold">{{ __('officer.subject_balance_col_gap') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($subjectBalance as $row)
+                                <tr class="border-b border-ttn-hairline last:border-0">
+                                    <td class="py-3 pr-2 font-bold whitespace-nowrap">{{ $row['subject'] }}</td>
+                                    <td class="py-3 px-2 text-right text-ttn-text2">{{ number_format($row['candidates']) }}</td>
+                                    <td class="py-3 px-2 text-right text-ttn-text2">{{ number_format($row['jobs']) }}</td>
+                                    <td class="py-3 px-2">
+                                        <div class="grid grid-cols-2 h-2">
+                                            <div class="flex justify-end pr-px">
+                                                @if ($row['gap'] < 0)
+                                                    <div class="h-2 rounded-l bg-ttn-red" style="width: {{ $row['bar_pct'] }}%"></div>
+                                                @endif
+                                            </div>
+                                            <div class="flex justify-start pl-px border-l border-ttn-border">
+                                                @if ($row['gap'] > 0)
+                                                    <div class="h-2 rounded-r bg-ttn-primary" style="width: {{ $row['bar_pct'] }}%"></div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 pl-2 text-right font-bold whitespace-nowrap {{ $row['gap'] < 0 ? 'text-ttn-red' : ($row['gap'] > 0 ? 'text-ttn-primary-dark' : 'text-ttn-text2') }}">
+                                        {{ $row['gap'] > 0 ? '+' : '' }}{{ number_format($row['gap']) }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
     </div>
 </x-officer-shell>

@@ -22,6 +22,15 @@ return [
     'no_location_data' => 'No location data yet.',
     'no_profession_data' => 'No profession data yet.',
 
+    'subject_balance_title' => 'Teaching subject · supply against demand',
+    'subject_balance_subtitle' => 'Candidates who list a subject vs. active postings that need it — biggest shortages first.',
+    'subject_balance_empty' => 'No teaching-subject data yet — candidates and schools haven\'t tagged subjects on their profiles/postings.',
+    'subject_balance_col_area' => 'Teaching Area',
+    'subject_balance_col_candidates' => 'Candidates',
+    'subject_balance_col_jobs' => 'Open Jobs',
+    'subject_balance_col_balance' => 'Balance',
+    'subject_balance_col_gap' => 'Gap',
+
     'queue_title' => 'Risk-Based Work Queue',
     'queue_subtitle' => 'Sorted oldest-first — start from the top.',
     'col_candidate' => 'Candidate',

@@ -22,6 +22,15 @@ return [
     'no_location_data' => 'Hakuna taarifa za eneo bado.',
     'no_profession_data' => 'Hakuna taarifa za taaluma bado.',
 
+    'subject_balance_title' => 'Masomo ya kufundisha · usambazaji dhidi ya mahitaji',
+    'subject_balance_subtitle' => 'Watahiniwa waliotaja somo dhidi ya nafasi zinazohitaji somo hilo — upungufu mkubwa kwanza.',
+    'subject_balance_empty' => 'Hakuna taarifa za masomo ya kufundisha bado — watahiniwa na shule hawajaweka masomo kwenye wasifu/nafasi zao.',
+    'subject_balance_col_area' => 'Somo',
+    'subject_balance_col_candidates' => 'Watahiniwa',
+    'subject_balance_col_jobs' => 'Nafasi Wazi',
+    'subject_balance_col_balance' => 'Uwiano',
+    'subject_balance_col_gap' => 'Tofauti',
+
     'queue_title' => 'Foleni ya Kazi Kulingana na Hatari',
     'queue_subtitle' => 'Imepangwa kuanzia ya zamani zaidi — anza kutoka juu.',
     'col_candidate' => 'Mwombaji',
