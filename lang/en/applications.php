@@ -62,4 +62,11 @@ return [
     'offer_start_date' => 'Start Date',
     'offer_found_via' => 'Was this job found through ShuleSoft?',
     'skip' => 'Skip',
+
+    'applied_confirmation_title' => 'Application submitted ✓',
+    'applied_confirmation_status' => 'Application received',
+    'applied_confirmation_profile_strength' => 'Profile strength',
+    'applied_confirmation_nudge' => 'A complete and verified profile helps schools understand your qualifications and can improve your match with relevant vacancies.',
+    'applied_confirmation_dismiss' => 'Continue',
+    'applied_confirmation_cta' => 'Complete Profile',
 ];

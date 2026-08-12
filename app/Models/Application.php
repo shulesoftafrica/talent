@@ -14,7 +14,7 @@ class Application extends Model
     use HasUuidRouteKey;
 
     protected $fillable = [
-        'candidate_id', 'source_schema', 'source_job_posting_id', 'source_application_id',
+        'candidate_id', 'source_schema', 'source_job_posting_id', 'source_application_id', 'source_channel',
         'last_seen_status', 'ai_health_score', 'ai_health_label', 'ai_health_why', 'ai_health_missing',
         'interview_date', 'interview_type', 'interview_duration', 'applied_at',
         'interview_response', 'interview_response_note', 'interview_responded_at',

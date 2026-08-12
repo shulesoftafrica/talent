@@ -62,4 +62,11 @@ return [
     'offer_start_date' => 'Tarehe ya Kuanza',
     'offer_found_via' => 'Je, kazi hii ilipatikana kupitia ShuleSoft?',
     'skip' => 'Ruka',
+
+    'applied_confirmation_title' => 'Ombi limetumwa ✓',
+    'applied_confirmation_status' => 'Ombi limepokelewa',
+    'applied_confirmation_profile_strength' => 'Ukamilifu wa wasifu',
+    'applied_confirmation_nudge' => 'Wasifu kamili na uliothibitishwa husaidia shule kuelewa sifa zako na unaweza kuboresha ulinganifu wako na nafasi husika.',
+    'applied_confirmation_dismiss' => 'Endelea',
+    'applied_confirmation_cta' => 'Kamilisha Wasifu',
 ];

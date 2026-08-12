@@ -25,6 +25,7 @@ use App\Http\Controllers\Candidate\VerificationCheckoutController;
 use App\Http\Controllers\ActivityPingController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LanguageController;
+use App\Http\Controllers\PublicVacancyController;
 use App\Http\Controllers\ReferenceController;
 use App\Http\Controllers\Officer\AiUsageController as OfficerAiUsageController;
 use App\Http\Controllers\Officer\AnalyticsController as OfficerAnalyticsController;
@@ -52,8 +53,14 @@ Route::pattern('hobby', '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F
 Route::pattern('portfolioItem', '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
 Route::pattern('subject', '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
 Route::pattern('reference', '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
+Route::pattern('uuid', '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}');
 
 Route::get('/', [LandingController::class, 'index'])->name('landing');
+
+// Public "Share Vacancy" landing page (ShuleSoft) — no auth:candidate here
+// on purpose, this is a public advertisement for one vacancy, not the
+// authenticated/redacted candidate-matching flow at /app/jobs/{schema}/{id}.
+Route::get('/jobs/{uuid}', [PublicVacancyController::class, 'show'])->name('public.vacancy');
 
 Route::get('/lang/{locale}', [LanguageController::class, 'switch'])->name('language.switch');
 
@@ -63,11 +70,14 @@ Route::post('/activity/ping', [ActivityPingController::class, 'ping'])->name('ac
 
 Route::post('/webhooks/billing', [BillingWebhookController::class, 'handle'])->name('webhooks.billing');
 
-Route::prefix('onboarding')->name('onboarding.')->group(function () {
+Route::prefix('onboarding')->name('onboarding.')->middleware('throttle:10,1')->group(function () {
     Route::post('/cv', [OnboardingController::class, 'uploadCv'])->name('cv');
 });
 
-Route::prefix('otp')->name('otp.')->group(function () {
+// Now reachable from unauthenticated public job pages (see PublicVacancyController),
+// not just the landing page — throttled per-IP to blunt OTP-spam/enumeration
+// abuse now that traffic to it isn't limited to organic landing-page visitors.
+Route::prefix('otp')->name('otp.')->middleware('throttle:8,1')->group(function () {
     Route::post('/send', [OtpController::class, 'send'])->name('send');
     Route::post('/resend', [OtpController::class, 'resend'])->name('resend');
     Route::post('/verify', [OtpController::class, 'verify'])->name('verify');

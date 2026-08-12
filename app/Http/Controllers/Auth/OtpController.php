@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Models\Constant\ReferCity;
+use App\Services\Applications\ApplicationService;
+use App\Services\Jobs\ActiveJobsRepository;
 use App\Services\Location\CountryDetectionService;
 use App\Services\Notifications\OtpService;
 use App\Services\Phone\PhoneNumberNormalizer;
@@ -14,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class OtpController extends Controller
 {
@@ -21,6 +24,8 @@ class OtpController extends Controller
         private readonly OtpService $otp,
         private readonly CountryDetectionService $countryDetection,
         private readonly PhoneNumberNormalizer $phoneNormalizer,
+        private readonly ActiveJobsRepository $activeJobs,
+        private readonly ApplicationService $applications,
     ) {
     }
 
@@ -89,6 +94,8 @@ class OtpController extends Controller
             'full_name' => ['nullable', 'string', 'max:255'],
             'country_id' => ['nullable', 'integer'],
             'city_id' => ['nullable', 'integer'],
+            'apply_uuid' => ['nullable', 'string', 'max:36'],
+            'apply_ref' => ['nullable', 'string', 'max:40'],
         ]);
 
         $result = $this->otp->verify($data['phone_or_email'], $data['code'], $data['purpose']);
@@ -126,9 +133,34 @@ class OtpController extends Controller
         $request->session()->regenerate();
         $request->session()->forget('onboarding');
 
+        $redirect = route('candidate.jobs');
+
+        // Resume "Apply" if the candidate arrived via a public Share Vacancy
+        // link and had to sign up / log in first — see resources/views/
+        // public/vacancy.blade.php and landing.blade.php's verifyOtp().
+        // Best-effort: a bad/expired job never blocks login itself.
+        if (!empty($data['apply_uuid'])) {
+            try {
+                $job = $this->activeJobs->findActiveByUuid($data['apply_uuid']);
+
+                if ($job) {
+                    $application = $this->applications->apply(
+                        $candidate,
+                        $job['source_schema'],
+                        (int) $job['id'],
+                        $data['apply_ref'] ?? null,
+                    );
+
+                    $redirect = route('candidate.applications.index', ['selected' => $application->uuid, 'applied' => 1]);
+                }
+            } catch (ValidationException $e) {
+                // Job no longer active — fall through to the default redirect.
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'redirect' => route('candidate.jobs'),
+            'redirect' => $redirect,
         ]);
     }
 

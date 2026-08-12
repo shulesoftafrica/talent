@@ -57,6 +57,18 @@ class JobContentSanitizer
     }
 
     /**
+     * Cleans the 'description' field the same way sections() cleans the
+     * others, but without redaction — sections() deliberately excludes
+     * 'description' for the redacted candidate-matching flow (see class
+     * docblock), but the public vacancy page (no redaction; the school's
+     * identity is the entire point) needs it rendered too.
+     */
+    public function plainDescription(?string $html): string
+    {
+        return $this->clean((string) $html, null);
+    }
+
+    /**
      * Drops any comma-separated segment of a job's 'location' that names
      * the institution itself (see LOCATION_INSTITUTION_KEYWORDS), keeping
      * only the segments that read as actual geography. Falls back to a

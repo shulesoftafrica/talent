@@ -43,6 +43,14 @@ class ApplicationsController extends Controller
         $selectedUuid = $request->query('selected', $apps->first()['uuid'] ?? null);
         $selected = $apps->firstWhere('uuid', $selectedUuid) ?? $apps->first();
 
+        // Set on the redirect right after a successful apply (see apply()
+        // below and Auth\OtpController::verify() for the public-vacancy
+        // login/CV auto-apply path) — shows a one-time "Application
+        // submitted" confirmation with a profile-completion nudge, rather
+        // than silently landing back on the same dashboard the candidate
+        // was just on.
+        $justApplied = $request->boolean('applied') && $selected;
+
         return view('candidate.applications', [
             'candidate' => $candidate,
             'attention' => $attention,
@@ -53,7 +61,35 @@ class ApplicationsController extends Controller
             'selected' => $selected,
             'progressStats' => $this->progressStats($apps, $allApps->count()),
             'offerPromptApplicationId' => session('withdrawal_offer_prompt'),
+            'justApplied' => $justApplied,
+            'profileCompletion' => $justApplied ? $this->profileCompletion($candidate) : [],
         ]);
+    }
+
+    /**
+     * Same per-section signals as ProfileController::profileCompletion() —
+     * duplicated rather than shared because that method is private to a
+     * controller with a different constructor; kept here as the small,
+     * stable list it is rather than introducing a shared service for two
+     * call sites.
+     *
+     * @return array<int, array{label: string, pct: int}>
+     */
+    private function profileCompletion(Candidate $candidate): array
+    {
+        $sections = [
+            ['label' => 'Personal Information', 'pct' => $candidate->full_name && $candidate->current_location ? 100 : 60],
+            ['label' => 'Experience', 'pct' => $candidate->experiences->isNotEmpty() ? 100 : 0],
+            ['label' => 'Education', 'pct' => $candidate->educations->isNotEmpty() ? 100 : 0],
+            ['label' => 'Portfolio', 'pct' => min(100, $candidate->portfolioItems->count() * 50)],
+            ['label' => 'Skills', 'pct' => min(100, $candidate->skills->count() * 25)],
+        ];
+
+        if (config('services.verification_enabled')) {
+            $sections[] = ['label' => 'Verification', 'pct' => (int) $candidate->verificationItems()->where('status', \App\Services\Verification\VerificationStatus::VERIFIED)->count() * 17];
+        }
+
+        return $sections;
     }
 
     public function apply(Request $request): RedirectResponse
@@ -61,16 +97,18 @@ class ApplicationsController extends Controller
         $data = $request->validate([
             'source_schema' => ['required', Rule::in(['shulesoft', 'safaribook'])],
             'job_posting_id' => ['required', 'integer'],
+            'ref' => ['nullable', 'string', 'max:40'],
         ]);
 
         $application = $this->applications->apply(
             Auth::guard('candidate')->user(),
             $data['source_schema'],
             (int) $data['job_posting_id'],
+            $data['ref'] ?? null,
         );
 
         return redirect()
-            ->route('candidate.applications.index', ['selected' => $application->uuid])
+            ->route('candidate.applications.index', ['selected' => $application->uuid, 'applied' => 1])
             ->with('status', 'Application submitted.');
     }
 

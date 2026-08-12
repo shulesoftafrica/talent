@@ -19,7 +19,15 @@ use Illuminate\Validation\ValidationException;
  */
 class ApplicationService
 {
-    public function apply(Candidate $candidate, string $sourceSchema, int $jobPostingId): Application
+    /**
+     * @param string|null $ref Distribution-channel attribution tag from
+     *   ShuleSoft's "Share Vacancy" feature (whatsapp/facebook/linkedin/qr/
+     *   poster_square/poster_whatsapp/poster_a4/copied_link), carried on
+     *   the public vacancy URL's ?ref= query param. Null for applications
+     *   that didn't come through a shared link (e.g. organic Talent
+     *   Network browsing via candidate.jobs).
+     */
+    public function apply(Candidate $candidate, string $sourceSchema, int $jobPostingId, ?string $ref = null): Application
     {
         if (!in_array($sourceSchema, ['shulesoft', 'safaribook'], true)) {
             throw new \InvalidArgumentException("Invalid source schema: {$sourceSchema}");
@@ -93,6 +101,7 @@ class ApplicationService
             'source_schema' => $sourceSchema,
             'source_job_posting_id' => $jobPostingId,
             'source_application_id' => $originId,
+            'source_channel' => $ref,
             'last_seen_status' => 'new',
             'applied_at' => now(),
             'ai_health_score' => $health['score'],

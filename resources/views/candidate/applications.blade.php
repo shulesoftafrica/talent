@@ -252,6 +252,46 @@
         </div>
     @endif
 
+    @if ($justApplied)
+        <div x-data="{ open: true }" x-show="open" x-cloak @click.self="open = false" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-5">
+            <div @click.stop class="w-[440px] max-w-full rounded-2xl bg-ttn-card p-5 sm:p-7 text-ttn-text">
+                <div class="mx-auto mb-4 flex h-13 w-13 items-center justify-center rounded-full bg-ttn-primary-light text-2xl text-ttn-primary-dark">✓</div>
+                <div class="font-display text-base font-bold text-center mb-1">{{ __('applications.applied_confirmation_title') }}</div>
+                <div class="text-[13px] text-ttn-text2 text-center mb-1">{{ $selected['title'] }}</div>
+                <div class="text-[12px] text-ttn-text2 text-center mb-5">{{ $selected['school'] }}</div>
+                <div class="rounded-lg bg-ttn-primary-light px-3.5 py-2.5 text-center text-[12.5px] font-bold text-ttn-primary-dark mb-5">
+                    {{ __('applications.applied_confirmation_status') }}
+                </div>
+
+                <div class="rounded-xl border border-ttn-border p-4 mb-5">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-[12.5px] font-bold">{{ __('applications.applied_confirmation_profile_strength') }}</span>
+                        <span class="text-[12.5px] font-bold">{{ $candidate->profile_strength }}%</span>
+                    </div>
+                    <div class="h-1.5 w-full rounded-full bg-ttn-track mb-3">
+                        <div class="h-full rounded-full bg-ttn-primary" style="width: {{ $candidate->profile_strength }}%"></div>
+                    </div>
+                    <p class="text-[11.5px] leading-relaxed text-ttn-text2 mb-2.5">
+                        {{ __('applications.applied_confirmation_nudge') }}
+                    </p>
+                    @php $missing = collect($profileCompletion)->where('pct', '<', 100); @endphp
+                    @if ($missing->isNotEmpty())
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach ($missing as $section)
+                                <span class="rounded-full bg-ttn-subtle px-2.5 py-1 text-[11px] font-semibold text-ttn-text2">{{ $section['label'] }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="button" @click="open = false" class="flex-1 rounded-lg border border-ttn-border px-4 py-2.5 text-[12.5px] font-bold text-ttn-text2 cursor-pointer">{{ __('applications.applied_confirmation_dismiss') }}</button>
+                    <a href="{{ route('candidate.profile') }}" class="flex-1 rounded-lg bg-ttn-primary px-4 py-2.5 text-[12.5px] font-bold text-white text-center">{{ __('applications.applied_confirmation_cta') }}</a>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @if ($offerPromptApplicationId)
         <div x-data="{ open: true }" x-show="open" x-cloak @click.self="open = false" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-3 sm:p-5">
             <div @click.stop class="w-[420px] max-w-full rounded-2xl bg-ttn-card p-5 sm:p-7 text-ttn-text">

@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\DB;
  * Resolves a job posting's school/organization display name from its
  * source schema + creator — used both for the "hidden until you apply"
  * label and for redacting the school's identity out of job description
- * text before application (see JobMatchesController::show). Only
- * 'shulesoft' currently has a real admin.schools lookup path;
- * 'safaribook' always falls back to its generic label since that link
- * isn't available yet.
+ * text before application (see JobMatchesController::show). Both
+ * 'shulesoft' and 'safaribook' resolve via their own users table plus
+ * the shared admin.schools table; anything else falls back to the
+ * generic label.
  */
 class SchoolNameResolver
 {
@@ -36,7 +36,7 @@ class SchoolNameResolver
      */
     public function resolveReal(string $sourceSchema, ?int $createdBy): ?string
     {
-        if (!$createdBy || $sourceSchema !== 'shulesoft') {
+        if (!$createdBy || !in_array($sourceSchema, ['shulesoft', 'safaribook'], true)) {
             return null;
         }
 
@@ -45,7 +45,7 @@ class SchoolNameResolver
             return $this->cache[$cacheKey];
         }
 
-        $schemaName = DB::connection('shulesoft')->table('users')->where('id', $createdBy)->value('schema_name');
+        $schemaName = DB::connection($sourceSchema)->table('users')->where('id', $createdBy)->value('schema_name');
         $schoolName = $schemaName
             ? DB::connection('admin')->table('schools')->where('schema_name', $schemaName)->value('name')
             : null;

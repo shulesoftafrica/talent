@@ -62,4 +62,11 @@ return [
     'offer_start_date' => 'Date de Début',
     'offer_found_via' => 'Cet emploi a-t-il été trouvé via ShuleSoft ?',
     'skip' => 'Passer',
+
+    'applied_confirmation_title' => 'Candidature envoyée ✓',
+    'applied_confirmation_status' => 'Candidature reçue',
+    'applied_confirmation_profile_strength' => 'Complétude du profil',
+    'applied_confirmation_nudge' => 'Un profil complet et vérifié aide les écoles à comprendre vos qualifications et peut améliorer votre correspondance avec les postes pertinents.',
+    'applied_confirmation_dismiss' => 'Continuer',
+    'applied_confirmation_cta' => 'Compléter le Profil',
 ];

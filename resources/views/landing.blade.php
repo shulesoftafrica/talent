@@ -255,8 +255,12 @@
                 return { ok: res.ok, data: await res.json() };
             }
 
+            const applyParams = new URLSearchParams(window.location.search);
+
             return {
                 tab: 'first',
+                applyUuid: applyParams.get('apply_uuid') || null,
+                applyRef: applyParams.get('apply_ref') || null,
                 cvUploading: false,
                 cvParsed: false,
                 cvError: null,
@@ -403,6 +407,8 @@
                         full_name: this.otpPurpose === 'signup' ? this.parsedFullName : undefined,
                         country_id: this.otpPurpose === 'signup' ? (this.parsedCountryId || undefined) : undefined,
                         city_id: this.otpPurpose === 'signup' ? (this.parsedCityId || undefined) : undefined,
+                        apply_uuid: this.applyUuid || undefined,
+                        apply_ref: this.applyRef || undefined,
                     });
                     this.otpVerifying = false;
 
