@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Officer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Constant\ReferSubject;
+use App\Services\Jobs\SchoolNameResolver;
 use App\Services\Verification\VerificationStatus;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -14,6 +17,19 @@ class DashboardController extends Controller
 {
     /** How many of the biggest supply/demand gaps to surface — same idea as "jobs needing attention", not a full subject directory. */
     private const SUBJECT_ROWS = 12;
+
+    /** How many under-performing active postings to surface. */
+    private const ATTENTION_ROWS = 15;
+
+    /** A posting isn't flagged until it's had a few days to attract applicants — avoid noise from same-day postings. */
+    private const ATTENTION_MIN_DAYS_LIVE = 3;
+
+    /** Below this application count, a posting is worth an officer's attention. */
+    private const ATTENTION_MAX_APPLICATIONS = 5;
+
+    public function __construct(private readonly SchoolNameResolver $schoolNames)
+    {
+    }
 
     public function index(): View
     {
@@ -46,53 +62,112 @@ class DashboardController extends Controller
 
         $totalCandidates = max(1, DB::table('candidates')->count());
 
+        $candidatesBySubject = $this->candidatesBySubject();
+        $activeJobs = $this->activeJobsWithHealth();
+
         return view('officer.dashboard', [
             'officer' => $officer,
             'stats' => $stats,
             'regions' => $regions,
             'professions' => $professions,
             'totalCandidates' => $totalCandidates,
-            'subjectBalance' => $this->subjectSupplyDemand(),
+            'subjectBalance' => $this->subjectSupplyDemand($candidatesBySubject, $activeJobs),
+            'jobHealth' => $this->jobPostingHealth($candidatesBySubject, $activeJobs),
         ]);
+    }
+
+    /**
+     * @return Collection<int, int> candidate count keyed by subject_id
+     */
+    private function candidatesBySubject(): Collection
+    {
+        return DB::table('candidate_teaching_subjects')
+            ->select('subject_id')
+            ->selectRaw('count(distinct candidate_id) as total')
+            ->groupBy('subject_id')
+            ->pluck('total', 'subject_id');
+    }
+
+    /**
+     * Every currently-active posting across both origin schemas, with its
+     * real application count (the origin app's own applications table —
+     * every channel, not just Talent Network) and required subject_ids —
+     * the shared base both the subject-balance table and the job-health
+     * table are built from, so each origin schema is only queried once.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function activeJobsWithHealth(): Collection
+    {
+        $rows = collect();
+
+        foreach (['shulesoft', 'safaribook'] as $schema) {
+            $jobs = DB::connection($schema)->table('job_postings')
+                ->where('status', 'active')
+                ->select('id', 'title', 'department', 'created_by', 'created_at')
+                ->get();
+
+            if ($jobs->isEmpty()) {
+                continue;
+            }
+
+            $jobIds = $jobs->pluck('id');
+
+            $appCounts = DB::connection($schema)->table('applications')
+                ->whereIn('job_posting_id', $jobIds)
+                ->select('job_posting_id')
+                ->selectRaw('count(*) as total')
+                ->groupBy('job_posting_id')
+                ->pluck('total', 'job_posting_id');
+
+            $subjectsByJob = collect();
+
+            if (Schema::connection($schema)->hasTable('job_posting_teaching_assignments')) {
+                DB::connection($schema)->table('job_posting_teaching_assignments')
+                    ->whereIn('job_posting_id', $jobIds)
+                    ->select('job_posting_id', 'subject_id')
+                    ->get()
+                    ->each(function ($row) use ($subjectsByJob) {
+                        if (!isset($subjectsByJob[$row->job_posting_id])) {
+                            $subjectsByJob[$row->job_posting_id] = collect();
+                        }
+                        $subjectsByJob[$row->job_posting_id]->push($row->subject_id);
+                    });
+            }
+
+            foreach ($jobs as $job) {
+                $rows->push([
+                    'source_schema' => $schema,
+                    'id' => $job->id,
+                    'title' => $job->title,
+                    'department' => $job->department,
+                    'created_by' => $job->created_by,
+                    'days_live' => (int) Carbon::parse($job->created_at)->diffInDays(now()),
+                    'applications' => (int) ($appCounts[$job->id] ?? 0),
+                    'subject_ids' => $subjectsByJob[$job->id] ?? collect(),
+                ]);
+            }
+        }
+
+        return $rows;
     }
 
     /**
      * Candidates who can teach a subject vs. currently-active postings that
      * need it — both sides are real, explicit data (candidate_teaching_
-     * subjects; job_posting_teaching_assignments joined to active postings
-     * in each origin schema), not inferred from free-text. A negative gap
-     * means more open demand than candidates who list that subject.
+     * subjects; job_posting_teaching_assignments), not inferred from
+     * free-text. A negative gap means more open demand than candidates who
+     * list that subject.
      *
      * @return array<int, array{subject: string, candidates: int, jobs: int, gap: int}>
      */
-    private function subjectSupplyDemand(): array
+    private function subjectSupplyDemand(Collection $candidatesBySubject, Collection $activeJobs): array
     {
-        $candidatesBySubject = DB::table('candidate_teaching_subjects')
-            ->select('subject_id')
-            ->selectRaw('count(distinct candidate_id) as total')
-            ->groupBy('subject_id')
-            ->pluck('total', 'subject_id');
-
         $jobsBySubject = collect();
-
-        foreach (['shulesoft', 'safaribook'] as $schema) {
-            // Schemas evolve independently (this table doesn't exist yet on
-            // every origin app's install) — skip rather than 500 the whole
-            // dashboard over one lagging schema.
-            if (!Schema::connection($schema)->hasTable('job_posting_teaching_assignments')) {
-                continue;
+        foreach ($activeJobs as $job) {
+            foreach ($job['subject_ids'] as $subjectId) {
+                $jobsBySubject[$subjectId] = ($jobsBySubject[$subjectId] ?? 0) + 1;
             }
-
-            DB::connection($schema)->table('job_posting_teaching_assignments as jta')
-                ->join('job_postings as jp', 'jp.id', '=', 'jta.job_posting_id')
-                ->where('jp.status', 'active')
-                ->select('jta.subject_id')
-                ->selectRaw('count(distinct jta.job_posting_id) as total')
-                ->groupBy('jta.subject_id')
-                ->get()
-                ->each(function ($row) use ($jobsBySubject) {
-                    $jobsBySubject[$row->subject_id] = ($jobsBySubject[$row->subject_id] ?? 0) + $row->total;
-                });
         }
 
         $subjectIds = $candidatesBySubject->keys()->merge($jobsBySubject->keys())->unique();
@@ -130,5 +205,59 @@ class DashboardController extends Controller
             ...$row,
             'bar_pct' => (int) round(abs($row['gap']) / $maxAbsGap * 100),
         ])->all();
+    }
+
+    /**
+     * Real-signal health check for active postings — deliberately limited
+     * to what's actually derivable today: application counts (real) and
+     * teaching-subject supply (real, from the same data as the balance
+     * table above). No invitation/acceptance funnel and no salary-benchmark
+     * diagnosis — neither has any underlying data source in this app yet,
+     * and fabricating those numbers on an officer-facing dashboard would be
+     * actively misleading rather than merely incomplete.
+     *
+     * @return array{
+     *   active_count: int, total_applications: int, avg_applications: float,
+     *   zero_application_count: int,
+     *   flagged: array<int, array<string, mixed>>
+     * }
+     */
+    private function jobPostingHealth(Collection $candidatesBySubject, Collection $activeJobs): array
+    {
+        $activeCount = $activeJobs->count();
+        $totalApplications = $activeJobs->sum('applications');
+        $zeroApplicationCount = $activeJobs->where('applications', 0)->count();
+
+        $flagged = $activeJobs
+            ->filter(fn ($job) => $job['days_live'] >= self::ATTENTION_MIN_DAYS_LIVE && $job['applications'] < self::ATTENTION_MAX_APPLICATIONS)
+            ->map(function ($job) use ($candidatesBySubject) {
+                $hasSubjects = $job['subject_ids']->isNotEmpty();
+                $anySupply = $hasSubjects && $job['subject_ids']->contains(fn ($id) => ($candidatesBySubject[$id] ?? 0) > 0);
+
+                $diagnosis = match (true) {
+                    $hasSubjects && !$anySupply => 'No candidates list this subject',
+                    $job['applications'] === 0 => 'No applications yet',
+                    $job['applications'] <= 2 => 'Very few applications',
+                    default => 'Low applications — worth a look',
+                };
+
+                return [
+                    ...$job,
+                    'school' => $this->schoolNames->resolve($job['source_schema'], $job['created_by'], $job['department']),
+                    'diagnosis' => $diagnosis,
+                ];
+            })
+            ->sortBy([['applications', 'asc'], ['days_live', 'desc']])
+            ->take(self::ATTENTION_ROWS)
+            ->values()
+            ->all();
+
+        return [
+            'active_count' => $activeCount,
+            'total_applications' => $totalApplications,
+            'avg_applications' => $activeCount > 0 ? round($totalApplications / $activeCount, 1) : 0.0,
+            'zero_application_count' => $zeroApplicationCount,
+            'flagged' => $flagged,
+        ];
     }
 }
