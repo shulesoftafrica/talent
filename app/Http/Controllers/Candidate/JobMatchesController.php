@@ -160,7 +160,7 @@ class JobMatchesController extends Controller
 
         abort_unless($job, 404);
 
-        $schoolName = $this->schoolNames->resolveReal($sourceSchema, $rawJob->created_by ?? null);
+        $schoolName = $this->schoolNames->resolveReal($sourceSchema, $rawJob->hiring_manager_id ?? null, $rawJob->created_by ?? null);
 
         return view('candidate.job-detail', [
             'candidate' => $candidate,

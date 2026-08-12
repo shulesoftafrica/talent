@@ -44,8 +44,8 @@ class PublicVacancyController extends Controller
             return view('public.vacancy', ['unavailable' => true]);
         }
 
-        $schoolName = $this->schoolNames->resolve($job['source_schema'], $job['created_by'] ?? null, $job['department'] ?? null);
-        $schoolLogoUrl = $this->schoolNames->resolveLogoUrl($job['source_schema'], $job['created_by'] ?? null);
+        $schoolName = $this->schoolNames->resolve($job['source_schema'], $job['hiring_manager_id'] ?? null, $job['created_by'] ?? null, $job['department'] ?? null);
+        $schoolLogoUrl = $this->schoolNames->resolveLogoUrl($job['source_schema'], $job['hiring_manager_id'] ?? null, $job['created_by'] ?? null);
 
         $deadline = $job['application_deadline'] ? Carbon::parse($job['application_deadline']) : null;
         $deadlinePassed = $deadline ? $deadline->isPast() : false;

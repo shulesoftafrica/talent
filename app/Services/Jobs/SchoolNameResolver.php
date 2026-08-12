@@ -7,12 +7,21 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Resolves a job posting's school/organization display name (and, for the
- * public vacancy page, its logo) from its source schema + creator — used
+ * public vacancy page, its logo and country) from its origin schema — used
  * both for the "hidden until you apply" label and for redacting the
  * school's identity out of job description text before application (see
  * JobMatchesController::show). Both 'shulesoft' and 'safaribook' resolve
  * via their own users table plus the shared admin.schools table; anything
  * else falls back to the generic label.
+ *
+ * Every resolve*() method takes the job posting's hiring_manager_id AND its
+ * created_by, in that order of preference — hiring_manager_id is the one
+ * that actually identifies the school-side account (confirmed live: for
+ * every currently-active posting checked across both schemas,
+ * created_by's user record consistently has no schema_name — often no
+ * user record at all — while hiring_manager_id resolves correctly).
+ * created_by is kept only as a fallback for however job postings are
+ * created elsewhere in the ecosystem; never rely on it alone.
  */
 class SchoolNameResolver
 {
@@ -36,11 +45,11 @@ class SchoolNameResolver
 
     private const DOMAIN_SUFFIX = ['shulesoft' => 'shulesoft.africa', 'safaribook' => 'safaribook.africa'];
 
-    public function resolve(string $sourceSchema, ?int $createdBy, ?string $department): string
+    public function resolve(string $sourceSchema, ?int $hiringManagerId, ?int $createdBy, ?string $department): string
     {
         $fallback = $department ?: ($sourceSchema === 'shulesoft' ? 'A ShuleSoft School' : 'A ShuleSoft Network Client');
 
-        return $this->resolveReal($sourceSchema, $createdBy) ?? $fallback;
+        return $this->resolveReal($sourceSchema, $hiringManagerId, $createdBy) ?? $fallback;
     }
 
     /**
@@ -50,11 +59,13 @@ class SchoolNameResolver
      * JobContentSanitizer), where a generic placeholder like "Software
      * department" must never be treated as the name to strip (it's a
      * job's department label, not the school's identity, and can
-     * coincidentally match ordinary words elsewhere in the text).
+     * coincidentally match ordinary words elsewhere in the text), and by
+     * any officer-facing report where a wrong-but-plausible-looking name
+     * would be worse than an honest "unknown".
      */
-    public function resolveReal(string $sourceSchema, ?int $createdBy): ?string
+    public function resolveReal(string $sourceSchema, ?int $hiringManagerId, ?int $createdBy = null): ?string
     {
-        $schemaName = $this->resolveSchemaName($sourceSchema, $createdBy);
+        $schemaName = $this->resolveSchemaName($sourceSchema, $hiringManagerId, $createdBy);
 
         if (!$schemaName) {
             return null;
@@ -75,9 +86,9 @@ class SchoolNameResolver
      * uploads publicly reachable at /storage/uploads/images/{filename} —
      * confirmed live against real school records.
      */
-    public function resolveLogoUrl(string $sourceSchema, ?int $createdBy): ?string
+    public function resolveLogoUrl(string $sourceSchema, ?int $hiringManagerId, ?int $createdBy = null): ?string
     {
-        $schemaName = $this->resolveSchemaName($sourceSchema, $createdBy);
+        $schemaName = $this->resolveSchemaName($sourceSchema, $hiringManagerId, $createdBy);
         $suffix = self::DOMAIN_SUFFIX[$sourceSchema] ?? null;
 
         if (!$schemaName || !$suffix) {
@@ -97,12 +108,12 @@ class SchoolNameResolver
      * The school's registered country, resolved the same way as its logo
      * (schema_name -> that tenant's own setting row -> country_id), then
      * named via the shared reference table. Null whenever the schema_name
-     * itself can't be resolved (e.g. a job whose created_by user record no
-     * longer exists) — callers must show that as "unknown", not guess.
+     * itself can't be resolved — callers must show that as "unknown", not
+     * guess.
      */
-    public function resolveCountry(string $sourceSchema, ?int $createdBy): ?string
+    public function resolveCountry(string $sourceSchema, ?int $hiringManagerId, ?int $createdBy = null): ?string
     {
-        $schemaName = $this->resolveSchemaName($sourceSchema, $createdBy);
+        $schemaName = $this->resolveSchemaName($sourceSchema, $hiringManagerId, $createdBy);
 
         if (!$schemaName) {
             return null;
@@ -113,17 +124,26 @@ class SchoolNameResolver
         return $countryId ? ReferCountry::find($countryId)?->country : null;
     }
 
-    private function resolveSchemaName(string $sourceSchema, ?int $createdBy): ?string
+    private function resolveSchemaName(string $sourceSchema, ?int $hiringManagerId, ?int $createdBy): ?string
     {
-        if (!$createdBy || !in_array($sourceSchema, ['shulesoft', 'safaribook'], true)) {
+        if (!in_array($sourceSchema, ['shulesoft', 'safaribook'], true)) {
             return null;
         }
 
-        $cacheKey = "{$sourceSchema}:{$createdBy}";
-        if (array_key_exists($cacheKey, $this->schemaNameCache)) {
-            return $this->schemaNameCache[$cacheKey];
+        foreach (array_filter([$hiringManagerId, $createdBy]) as $userId) {
+            $cacheKey = "{$sourceSchema}:{$userId}";
+
+            if (array_key_exists($cacheKey, $this->schemaNameCache)) {
+                $cached = $this->schemaNameCache[$cacheKey];
+            } else {
+                $cached = $this->schemaNameCache[$cacheKey] = DB::connection($sourceSchema)->table('users')->where('id', $userId)->value('schema_name');
+            }
+
+            if ($cached) {
+                return $cached;
+            }
         }
 
-        return $this->schemaNameCache[$cacheKey] = DB::connection($sourceSchema)->table('users')->where('id', $createdBy)->value('schema_name');
+        return null;
     }
 }

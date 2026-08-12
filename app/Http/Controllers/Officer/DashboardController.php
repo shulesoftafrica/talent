@@ -104,7 +104,7 @@ class DashboardController extends Controller
         foreach (['shulesoft', 'safaribook'] as $schema) {
             $jobs = DB::connection($schema)->table('job_postings')
                 ->where('status', 'active')
-                ->select('id', 'title', 'department', 'created_by', 'created_at', 'location')
+                ->select('id', 'title', 'department', 'created_by', 'hiring_manager_id', 'created_at', 'location')
                 ->get();
 
             if ($jobs->isEmpty()) {
@@ -143,6 +143,7 @@ class DashboardController extends Controller
                     'department' => $job->department,
                     'location' => $job->location,
                     'created_by' => $job->created_by,
+                    'hiring_manager_id' => $job->hiring_manager_id,
                     'days_live' => (int) Carbon::parse($job->created_at)->diffInDays(now()),
                     'applications' => (int) ($appCounts[$job->id] ?? 0),
                     'subject_ids' => $subjectsByJob[$job->id] ?? collect(),
@@ -252,8 +253,8 @@ class DashboardController extends Controller
                     // query), so their real school genuinely can't be
                     // resolved — that has to read as "Unknown school", not a
                     // department name that happens to look like one.
-                    'school' => $this->schoolNames->resolveReal($job['source_schema'], $job['created_by']),
-                    'country' => $this->schoolNames->resolveCountry($job['source_schema'], $job['created_by']),
+                    'school' => $this->schoolNames->resolveReal($job['source_schema'], $job['hiring_manager_id'], $job['created_by']),
+                    'country' => $this->schoolNames->resolveCountry($job['source_schema'], $job['hiring_manager_id'], $job['created_by']),
                     'diagnosis' => $diagnosis,
                 ];
             })
