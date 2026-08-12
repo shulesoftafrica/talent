@@ -15,6 +15,9 @@ use Illuminate\Support\Facades\DB;
  */
 class ActiveJobsRepository
 {
+    /** Shared by fetchActive() and findActiveById() so a single-job lookup returns the exact same shape JobMatchScorer expects. */
+    private const SCORING_COLUMNS = ['id', 'title', 'department', 'location', 'salary_min', 'salary_max', 'employment_type', 'application_deadline', 'created_at'];
+
     /**
      * Read-only UNION ALL feed across the two recruitment schemas. Done as
      * two separate connection queries merged in PHP rather than a real SQL
@@ -23,19 +26,42 @@ class ActiveJobsRepository
      */
     public function fetchActive(): Collection
     {
-        $columns = ['id', 'title', 'department', 'location', 'salary_min', 'salary_max', 'employment_type', 'application_deadline', 'created_at'];
-
         $shulesoft = DB::connection('shulesoft')->table('job_postings')
             ->where('status', 'active')
-            ->get($columns)
+            ->get(self::SCORING_COLUMNS)
             ->map(fn ($row) => (array) $row + ['source_schema' => 'shulesoft']);
 
         $safaribook = DB::connection('safaribook')->table('job_postings')
             ->where('status', 'active')
-            ->get($columns)
+            ->get(self::SCORING_COLUMNS)
             ->map(fn ($row) => (array) $row + ['source_schema' => 'safaribook']);
 
         return $shulesoft->concat($safaribook);
+    }
+
+    /**
+     * Same shape as one row of fetchActive(), but for exactly one known
+     * (schema, id) pair — used by the internal hiring-manager score lookup
+     * (Api\JobMatchController) so it can score just the one job asked
+     * about instead of the whole active set. JobMatchScorer::score()
+     * fingerprints its cache key from the exact jobs collection it's given,
+     * so scoring a single-job collection here is both correct (same
+     * scoring logic) and cheap (a one-job AI prompt instead of the whole
+     * network's, and its own independent cache entry — this never competes
+     * with or invalidates a candidate's own "jobs for you" cache).
+     */
+    public function findActiveById(string $sourceSchema, int $id): ?array
+    {
+        if (!in_array($sourceSchema, ['shulesoft', 'safaribook'], true)) {
+            return null;
+        }
+
+        $row = DB::connection($sourceSchema)->table('job_postings')
+            ->where('id', $id)
+            ->where('status', 'active')
+            ->first(self::SCORING_COLUMNS);
+
+        return $row ? (array) $row + ['source_schema' => $sourceSchema] : null;
     }
 
     /**
