@@ -75,7 +75,19 @@ class SchoolNameResolver
             return $this->cache[$schemaName];
         }
 
-        return $this->cache[$schemaName] = DB::connection('admin')->table('schools')->where('schema_name', $schemaName)->value('name');
+        $name = DB::connection('admin')->table('schools')->where('schema_name', $schemaName)->value('name');
+
+        // admin.schools is the curated registry of client schools — it has
+        // no row for ShuleSoft's own tenant (confirmed: it isn't a school),
+        // which is correct, not a gap. But that tenant still has a real,
+        // self-reported name on its own setting row (sname) — falling back
+        // to it means ShuleSoft's own internal postings show "ShuleSoft
+        // Limited" instead of "Unknown school", without ever inventing a
+        // name for a genuine client-school gap (this fallback only fires
+        // when a schema_name resolved at all).
+        $name ??= DB::connection($sourceSchema)->table('setting')->where('schema_name', $schemaName)->value('sname');
+
+        return $this->cache[$schemaName] = $name;
     }
 
     /**
