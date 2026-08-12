@@ -50,6 +50,11 @@ return [
     'job_health_col_diagnosis' => 'Uchunguzi',
     'job_health_unknown_school' => 'Shule haijulikani',
     'job_health_unknown' => '—',
+    'job_health_search_placeholder' => 'Tafuta nafasi, shule, eneo...',
+    'job_health_no_results' => 'Hakuna nafasi zinazolingana na utafutaji wako.',
+    'job_health_prev' => '← Nyuma',
+    'job_health_next' => 'Mbele →',
+    'job_health_page_of' => 'Ukurasa wa :page kati ya :total',
 
     'queue_title' => 'Foleni ya Kazi Kulingana na Hatari',
     'queue_subtitle' => 'Imepangwa kuanzia ya zamani zaidi — anza kutoka juu.',

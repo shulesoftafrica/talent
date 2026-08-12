@@ -50,6 +50,11 @@ return [
     'job_health_col_diagnosis' => 'Diagnostic',
     'job_health_unknown_school' => 'École inconnue',
     'job_health_unknown' => '—',
+    'job_health_search_placeholder' => 'Rechercher poste, école, lieu...',
+    'job_health_no_results' => 'Aucun poste ne correspond à votre recherche.',
+    'job_health_prev' => '← Précédent',
+    'job_health_next' => 'Suivant →',
+    'job_health_page_of' => 'Page :page sur :total',
 
     'queue_title' => 'File de Travail Basée sur le Risque',
     'queue_subtitle' => 'Triée du plus ancien au plus récent — commencez par le haut.',

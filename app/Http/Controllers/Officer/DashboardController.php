@@ -247,7 +247,17 @@ class DashboardController extends Controller
                 };
 
                 return [
-                    ...$job,
+                    // Only what the view (and the client-side search/sort
+                    // table it renders into, which gets this whole array as
+                    // JSON) actually needs — subject_ids/created_by/
+                    // hiring_manager_id/department were only ever inputs to
+                    // the diagnosis/resolution above, not display fields.
+                    'source_schema' => $job['source_schema'],
+                    'id' => $job['id'],
+                    'title' => $job['title'],
+                    'location' => $job['location'],
+                    'days_live' => $job['days_live'],
+                    'applications' => $job['applications'],
                     // resolveReal() (not resolve()) deliberately — this report
                     // must never substitute the job's internal department
                     // label as if it were a school name. A handful of active

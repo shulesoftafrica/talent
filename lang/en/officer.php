@@ -50,6 +50,11 @@ return [
     'job_health_col_diagnosis' => 'Diagnosis',
     'job_health_unknown_school' => 'Unknown school',
     'job_health_unknown' => '—',
+    'job_health_search_placeholder' => 'Search vacancy, school, location...',
+    'job_health_no_results' => 'No postings match your search.',
+    'job_health_prev' => '← Prev',
+    'job_health_next' => 'Next →',
+    'job_health_page_of' => 'Page :page of :total',
 
     'queue_title' => 'Risk-Based Work Queue',
     'queue_subtitle' => 'Sorted oldest-first — start from the top.',
