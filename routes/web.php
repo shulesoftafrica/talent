@@ -92,6 +92,7 @@ Route::post('/logout', function () {
 
 Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->prefix('app')->name('candidate.')->group(function () {
     Route::get('/jobs', [JobMatchesController::class, 'index'])->name('jobs');
+    Route::get('/jobs/more', [JobMatchesController::class, 'more'])->name('jobs.more');
     Route::get('/jobs/{sourceSchema}/{jobPostingId}', [JobMatchesController::class, 'show'])
         ->whereIn('sourceSchema', ['shulesoft', 'safaribook'])
         ->whereNumber('jobPostingId')

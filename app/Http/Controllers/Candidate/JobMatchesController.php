@@ -8,7 +8,10 @@ use App\Services\AI\JobMatchScorer;
 use App\Services\Jobs\ActiveJobsRepository;
 use App\Services\Jobs\JobContentSanitizer;
 use App\Services\Jobs\SchoolNameResolver;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -17,6 +20,14 @@ class JobMatchesController extends Controller
 {
     /** Free-tier candidates only see this many matches before the premium upsell. */
     private const FREE_MATCH_LIMIT = 3;
+
+    /**
+     * Rendered per page load / per "load more" batch — at 1000+ active
+     * postings, sending every matched job's markup in one response was the
+     * actual page-weight problem (scoring itself is cheap after the first
+     * hit, since JobMatchScorer caches the AI call — see its class docblock).
+     */
+    private const PAGE_SIZE = 10;
 
     public function __construct(
         private readonly JobMatchScorer $matcher,
@@ -31,25 +42,77 @@ class JobMatchesController extends Controller
         /** @var Candidate $candidate */
         $candidate = Auth::guard('candidate')->user();
 
-        $jobs = $this->matcher->score($candidate, $this->activeJobs->fetchActive())
-            ->map(fn ($job) => $this->withDisplayFields($job))
-            ->sortByDesc('match_score')
-            ->values();
+        $jobs = $this->scoredJobs($candidate);
 
-        $visible = $candidate->is_premium ? $jobs : $jobs->take(self::FREE_MATCH_LIMIT);
-        $hiddenCount = $jobs->count() - $visible->count();
-
-        $appliedKeys = $candidate->applications()
-            ->get(['source_schema', 'source_job_posting_id'])
-            ->map(fn ($app) => "{$app->source_schema}:{$app->source_job_posting_id}")
-            ->all();
+        $visible = $candidate->is_premium ? $jobs->take(self::PAGE_SIZE) : $jobs->take(self::FREE_MATCH_LIMIT);
+        $hiddenCount = $candidate->is_premium ? 0 : $jobs->count() - $visible->count();
+        $hasMore = $candidate->is_premium && $jobs->count() > $visible->count();
 
         return view('candidate.jobs', [
             'candidate' => $candidate,
             'jobs' => $visible,
+            'totalCount' => $jobs->count(),
             'hiddenCount' => $hiddenCount,
-            'appliedKeys' => $appliedKeys,
+            'hasMore' => $hasMore,
+            'appliedKeys' => $this->appliedKeys($candidate),
         ]);
+    }
+
+    /**
+     * Infinite-scroll continuation of index() — same ranked list (the AI
+     * score cache makes re-deriving it here cheap on every call, so nothing
+     * needs to be stored server-side between requests), sliced to the next
+     * batch. Premium-only: free-tier's list is already fully visible within
+     * one page (FREE_MATCH_LIMIT < PAGE_SIZE), so there's never a "more" to
+     * load for them — and this must never become a way to page past that
+     * limit without upgrading.
+     */
+    public function more(Request $request): JsonResponse
+    {
+        /** @var Candidate $candidate */
+        $candidate = Auth::guard('candidate')->user();
+
+        abort_unless($candidate->is_premium, 403);
+
+        $offset = max(0, (int) $request->query('offset', 0));
+
+        $jobs = $this->scoredJobs($candidate);
+        $batch = $jobs->slice($offset, self::PAGE_SIZE)->values();
+
+        $appliedKeys = $this->appliedKeys($candidate);
+
+        $html = $batch->map(fn ($job) => view('candidate._job-card', [
+            'job' => $job,
+            'appliedKeys' => $appliedKeys,
+        ])->render())->implode('');
+
+        return response()->json([
+            'html' => $html,
+            'count' => $batch->count(),
+            'has_more' => $offset + $batch->count() < $jobs->count(),
+        ]);
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function scoredJobs(Candidate $candidate): Collection
+    {
+        return $this->matcher->score($candidate, $this->activeJobs->fetchActive())
+            ->map(fn ($job) => $this->withDisplayFields($job))
+            ->sortByDesc('match_score')
+            ->values();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function appliedKeys(Candidate $candidate): array
+    {
+        return $candidate->applications()
+            ->get(['source_schema', 'source_job_posting_id'])
+            ->map(fn ($app) => "{$app->source_schema}:{$app->source_job_posting_id}")
+            ->all();
     }
 
     /**

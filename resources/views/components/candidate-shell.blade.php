@@ -1,7 +1,13 @@
 @props(['candidate', 'active', 'title', 'subtitle' => null])
 
 <x-layout :title="$title . ' — ShuleSoft Talent Network'">
-    <div class="flex min-h-screen flex-col lg:flex-row">
+    {{-- At lg+, the whole layout is pinned to the viewport height and only
+         the main column scrolls internally — the sidebar (so logout/nav is
+         always reachable) and the right rail stay in place regardless of
+         how long the middle content grows (e.g. an infinite-scrolling job
+         list). Below lg, the sidebar is hidden anyway (bottom tab bar takes
+         over), so the page just flows and scrolls normally there. --}}
+    <div class="flex min-h-screen flex-col lg:h-screen lg:flex-row lg:overflow-hidden">
         {{-- Mobile top bar --}}
         <div class="flex items-center justify-between border-b border-ttn-border bg-ttn-sidebar px-4 py-3 lg:hidden">
             <div class="flex items-center gap-2">
@@ -15,7 +21,7 @@
         </div>
 
         {{-- Sidebar (desktop / tablet landscape) --}}
-        <div class="hidden lg:flex w-[240px] xl:w-[250px] shrink-0 border-r border-ttn-border bg-ttn-sidebar flex-col p-4">
+        <div class="hidden lg:flex w-[240px] xl:w-[250px] shrink-0 border-r border-ttn-border bg-ttn-sidebar flex-col p-4 lg:h-full lg:overflow-y-auto">
             <div class="flex items-center gap-2 px-2 pb-5">
 <x-brand-logo size="h-7 w-7" />
                 <span class="font-display text-[13.5px] font-bold">{{ __('nav.brand') }}</span>
@@ -56,8 +62,8 @@
             </div>
         </div>
 
-        {{-- Main content --}}
-        <div class="flex-1 min-w-0 px-4 py-5 pb-24 lg:px-7 lg:py-6 lg:pb-6 lg:max-w-[700px]">
+        {{-- Main content: the only column that scrolls at lg+ --}}
+        <div class="flex-1 min-w-0 px-4 py-5 pb-24 lg:px-7 lg:py-6 lg:pb-6 lg:max-w-[700px] lg:h-full lg:overflow-y-auto">
             <div class="mb-5">
                 <h1 class="font-display text-lg lg:text-xl font-extrabold mb-0.5">{{ $title }}</h1>
                 @if ($subtitle)
@@ -68,9 +74,9 @@
             {{ $slot }}
         </div>
 
-        {{-- Right rail: stacks below main content on mobile/tablet, sticky column at lg+ --}}
-        <div class="w-full lg:w-[280px] xl:w-[290px] shrink-0 border-t lg:border-t-0 lg:border-l border-ttn-border p-4 pb-24 lg:p-5 lg:pb-5">
-            <div class="lg:sticky lg:top-5 flex flex-col gap-3.5">
+        {{-- Right rail: stacks below main content on mobile/tablet, own fixed-height scroll region at lg+ --}}
+        <div class="w-full lg:w-[280px] xl:w-[290px] shrink-0 border-t lg:border-t-0 lg:border-l border-ttn-border p-4 pb-24 lg:p-5 lg:pb-5 lg:h-full lg:overflow-y-auto">
+            <div class="flex flex-col gap-3.5">
                 {{ $rail ?? '' }}
             </div>
         </div>
