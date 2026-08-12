@@ -130,12 +130,12 @@
             <div class="rounded-2xl border border-ttn-border bg-ttn-card p-5">
                 <div class="flex justify-between items-baseline mb-3.5 flex-wrap gap-1">
                     <div class="font-display text-[13.5px] font-bold">{{ __('officer.job_health_table_title') }}</div>
-                    @if (!empty($jobHealth['flagged']))
-                        <div class="text-[11px] text-ttn-text2">{{ __('officer.job_health_flagged_count', ['n' => count($jobHealth['flagged']), 'total' => $jobHealth['active_count']]) }}</div>
+                    @if (!empty($jobHealth['postings']))
+                        <div class="text-[11px] text-ttn-text2">{{ __('officer.job_health_flagged_count', ['n' => $jobHealth['flagged_count'], 'total' => $jobHealth['active_count']]) }}</div>
                     @endif
                 </div>
 
-                @if (empty($jobHealth['flagged']))
+                @if (empty($jobHealth['postings']))
                     <div class="text-[13px] text-ttn-text2">{{ __('officer.job_health_empty') }}</div>
                 @else
                     <div class="overflow-x-auto">
@@ -152,10 +152,10 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($jobHealth['flagged'] as $row)
+                                @foreach ($jobHealth['postings'] as $row)
                                     <tr class="border-b border-ttn-hairline last:border-0">
                                         <td class="py-3 pr-2 font-bold whitespace-nowrap">
-                                            <span class="inline-block h-1.5 w-1.5 rounded-full mr-1.5 {{ $row['applications'] === 0 ? 'bg-ttn-red' : 'bg-ttn-amber' }}"></span>
+                                            <span class="inline-block h-1.5 w-1.5 rounded-full mr-1.5 {{ $row['applications'] === 0 ? 'bg-ttn-red' : ($row['flagged'] ? 'bg-ttn-amber' : 'bg-ttn-primary') }}"></span>
                                             {{ $row['title'] }}
                                         </td>
                                         <td class="py-3 px-2 whitespace-nowrap {{ $row['school'] ? 'text-ttn-text2' : 'italic text-ttn-text2 opacity-60' }}">
@@ -165,7 +165,7 @@
                                         <td class="py-3 px-2 text-ttn-text2 whitespace-nowrap">{{ $row['country'] ?? __('officer.job_health_unknown') }}</td>
                                         <td class="py-3 px-2 text-right text-ttn-text2">{{ $row['days_live'] }}</td>
                                         <td class="py-3 px-2 text-right text-ttn-text2">{{ $row['applications'] }}</td>
-                                        <td class="py-3 pl-2 text-ttn-text2 whitespace-nowrap">{{ $row['diagnosis'] }}</td>
+                                        <td class="py-3 pl-2 whitespace-nowrap {{ $row['flagged'] ? 'text-ttn-text2' : 'text-ttn-primary-dark font-semibold' }}">{{ $row['diagnosis'] }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

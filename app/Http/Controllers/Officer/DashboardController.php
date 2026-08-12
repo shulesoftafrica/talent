@@ -18,8 +18,8 @@ class DashboardController extends Controller
     /** How many of the biggest supply/demand gaps to surface — same idea as "jobs needing attention", not a full subject directory. */
     private const SUBJECT_ROWS = 12;
 
-    /** How many under-performing active postings to surface. */
-    private const ATTENTION_ROWS = 15;
+    /** Sanity ceiling on the postings table so a future high-volume network can't render an unbounded page — not a "top N" cap at today's scale. */
+    private const ATTENTION_ROWS = 300;
 
     /** A posting isn't flagged until it's had a few days to attract applicants — avoid noise from same-day postings. */
     private const ATTENTION_MIN_DAYS_LIVE = 3;
@@ -220,8 +220,8 @@ class DashboardController extends Controller
      *
      * @return array{
      *   active_count: int, total_applications: int, avg_applications: float,
-     *   zero_application_count: int,
-     *   flagged: array<int, array<string, mixed>>
+     *   zero_application_count: int, flagged_count: int,
+     *   postings: array<int, array<string, mixed>>
      * }
      */
     private function jobPostingHealth(Collection $candidatesBySubject, Collection $activeJobs): array
@@ -230,17 +230,20 @@ class DashboardController extends Controller
         $totalApplications = $activeJobs->sum('applications');
         $zeroApplicationCount = $activeJobs->where('applications', 0)->count();
 
-        $flagged = $activeJobs
-            ->filter(fn ($job) => $job['days_live'] >= self::ATTENTION_MIN_DAYS_LIVE && $job['applications'] < self::ATTENTION_MAX_APPLICATIONS)
+        $postings = $activeJobs
             ->map(function ($job) use ($candidatesBySubject) {
                 $hasSubjects = $job['subject_ids']->isNotEmpty();
                 $anySupply = $hasSubjects && $job['subject_ids']->contains(fn ($id) => ($candidatesBySubject[$id] ?? 0) > 0);
+                $tooNewToJudge = $job['days_live'] < self::ATTENTION_MIN_DAYS_LIVE;
+                $flagged = !$tooNewToJudge && $job['applications'] < self::ATTENTION_MAX_APPLICATIONS;
 
                 $diagnosis = match (true) {
                     $hasSubjects && !$anySupply => 'No candidates list this subject',
+                    $tooNewToJudge => 'Too new to judge yet',
                     $job['applications'] === 0 => 'No applications yet',
                     $job['applications'] <= 2 => 'Very few applications',
-                    default => 'Low applications — worth a look',
+                    $flagged => 'Low applications — worth a look',
+                    default => 'Healthy',
                 };
 
                 return [
@@ -255,20 +258,26 @@ class DashboardController extends Controller
                     // department name that happens to look like one.
                     'school' => $this->schoolNames->resolveReal($job['source_schema'], $job['hiring_manager_id'], $job['created_by']),
                     'country' => $this->schoolNames->resolveCountry($job['source_schema'], $job['hiring_manager_id'], $job['created_by']),
+                    'flagged' => $flagged,
                     'diagnosis' => $diagnosis,
                 ];
             })
+            // Worst-performing postings surface first (fewest applications,
+            // then longest-live-with-no-traction); healthy ones sink to the
+            // bottom — but every active posting is included, not just the
+            // flagged subset, since an officer needs the full picture to
+            // trust the numbers above it.
             ->sortBy([['applications', 'asc'], ['days_live', 'desc']])
             ->take(self::ATTENTION_ROWS)
-            ->values()
-            ->all();
+            ->values();
 
         return [
             'active_count' => $activeCount,
             'total_applications' => $totalApplications,
             'avg_applications' => $activeCount > 0 ? round($totalApplications / $activeCount, 1) : 0.0,
             'zero_application_count' => $zeroApplicationCount,
-            'flagged' => $flagged,
+            'flagged_count' => $postings->where('flagged', true)->count(),
+            'postings' => $postings->all(),
         ];
     }
 }
