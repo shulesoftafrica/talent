@@ -115,6 +115,7 @@
                 <div class="rounded-2xl border border-ttn-border bg-ttn-card p-4.5">
                     <div class="text-[11px] font-semibold text-ttn-text2 mb-2">{{ __('officer.job_health_applications') }}</div>
                     <div class="font-display text-2xl font-extrabold text-ttn-primary-dark">{{ number_format($jobHealth['total_applications']) }}</div>
+                    <div class="text-[11px] font-medium text-ttn-text2 mt-1">{{ __('officer.job_health_applications_sub') }}</div>
                 </div>
                 <div class="rounded-2xl border border-ttn-border bg-ttn-card p-4.5">
                     <div class="text-[11px] font-semibold text-ttn-text2 mb-2">{{ __('officer.job_health_avg') }}</div>
@@ -138,11 +139,13 @@
                     <div class="text-[13px] text-ttn-text2">{{ __('officer.job_health_empty') }}</div>
                 @else
                     <div class="overflow-x-auto">
-                        <table class="w-full text-[12.5px] min-w-[600px]">
+                        <table class="w-full text-[12.5px] min-w-[760px]">
                             <thead>
                                 <tr class="text-[10.5px] font-bold uppercase tracking-wide text-ttn-text2 border-b border-ttn-border">
                                     <th class="text-left py-2 pr-2 font-bold">{{ __('officer.job_health_col_vacancy') }}</th>
                                     <th class="text-left py-2 px-2 font-bold">{{ __('officer.job_health_col_school') }}</th>
+                                    <th class="text-left py-2 px-2 font-bold">{{ __('officer.job_health_col_location') }}</th>
+                                    <th class="text-left py-2 px-2 font-bold">{{ __('officer.job_health_col_country') }}</th>
                                     <th class="text-right py-2 px-2 font-bold">{{ __('officer.job_health_col_days_live') }}</th>
                                     <th class="text-right py-2 px-2 font-bold">{{ __('officer.job_health_col_applications') }}</th>
                                     <th class="text-left py-2 pl-2 font-bold">{{ __('officer.job_health_col_diagnosis') }}</th>
@@ -155,7 +158,11 @@
                                             <span class="inline-block h-1.5 w-1.5 rounded-full mr-1.5 {{ $row['applications'] === 0 ? 'bg-ttn-red' : 'bg-ttn-amber' }}"></span>
                                             {{ $row['title'] }}
                                         </td>
-                                        <td class="py-3 px-2 text-ttn-text2 whitespace-nowrap">{{ $row['school'] }}</td>
+                                        <td class="py-3 px-2 whitespace-nowrap {{ $row['school'] ? 'text-ttn-text2' : 'italic text-ttn-text2 opacity-60' }}">
+                                            {{ $row['school'] ?? __('officer.job_health_unknown_school') }}
+                                        </td>
+                                        <td class="py-3 px-2 text-ttn-text2 whitespace-nowrap">{{ $row['location'] ?? __('officer.job_health_unknown') }}</td>
+                                        <td class="py-3 px-2 text-ttn-text2 whitespace-nowrap">{{ $row['country'] ?? __('officer.job_health_unknown') }}</td>
                                         <td class="py-3 px-2 text-right text-ttn-text2">{{ $row['days_live'] }}</td>
                                         <td class="py-3 px-2 text-right text-ttn-text2">{{ $row['applications'] }}</td>
                                         <td class="py-3 pl-2 text-ttn-text2 whitespace-nowrap">{{ $row['diagnosis'] }}</td>

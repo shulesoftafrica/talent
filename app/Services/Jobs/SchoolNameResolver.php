@@ -2,6 +2,7 @@
 
 namespace App\Services\Jobs;
 
+use App\Models\Constant\ReferCountry;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -90,6 +91,26 @@ class SchoolNameResolver
         }
 
         return "https://{$schemaName}.{$suffix}/storage/uploads/images/{$photo}";
+    }
+
+    /**
+     * The school's registered country, resolved the same way as its logo
+     * (schema_name -> that tenant's own setting row -> country_id), then
+     * named via the shared reference table. Null whenever the schema_name
+     * itself can't be resolved (e.g. a job whose created_by user record no
+     * longer exists) — callers must show that as "unknown", not guess.
+     */
+    public function resolveCountry(string $sourceSchema, ?int $createdBy): ?string
+    {
+        $schemaName = $this->resolveSchemaName($sourceSchema, $createdBy);
+
+        if (!$schemaName) {
+            return null;
+        }
+
+        $countryId = DB::connection($sourceSchema)->table('setting')->where('schema_name', $schemaName)->value('country_id');
+
+        return $countryId ? ReferCountry::find($countryId)?->country : null;
     }
 
     private function resolveSchemaName(string $sourceSchema, ?int $createdBy): ?string

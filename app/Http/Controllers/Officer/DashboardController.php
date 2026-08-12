@@ -40,7 +40,7 @@ class DashboardController extends Controller
             ['label' => 'Premium Candidates', 'value' => number_format(DB::table('candidates')->where('is_premium', true)->count()), 'sub' => 'Paying subscribers'],
             ['label' => 'Verification Items Pending', 'value' => number_format(DB::table('candidate_verification_items')->whereIn('status', VerificationStatus::AWAITING_OFFICER)->count()), 'sub' => 'Awaiting officer review'],
             ['label' => 'Verification Items Verified', 'value' => number_format(DB::table('candidate_verification_items')->where('status', VerificationStatus::VERIFIED)->count()), 'sub' => 'Approved to date'],
-            ['label' => 'Applications Submitted', 'value' => number_format(DB::table('applications')->count()), 'sub' => 'Via Talent Network'],
+            ['label' => 'Applications Submitted', 'value' => number_format(DB::table('applications')->count()), 'sub' => 'Via Talent Network only, all-time — see "Active postings needing attention" below for all-channel totals'],
             ['label' => 'Candidates Hired', 'value' => '—', 'sub' => 'Tracked per application status'],
         ];
 
@@ -104,7 +104,7 @@ class DashboardController extends Controller
         foreach (['shulesoft', 'safaribook'] as $schema) {
             $jobs = DB::connection($schema)->table('job_postings')
                 ->where('status', 'active')
-                ->select('id', 'title', 'department', 'created_by', 'created_at')
+                ->select('id', 'title', 'department', 'created_by', 'created_at', 'location')
                 ->get();
 
             if ($jobs->isEmpty()) {
@@ -141,6 +141,7 @@ class DashboardController extends Controller
                     'id' => $job->id,
                     'title' => $job->title,
                     'department' => $job->department,
+                    'location' => $job->location,
                     'created_by' => $job->created_by,
                     'days_live' => (int) Carbon::parse($job->created_at)->diffInDays(now()),
                     'applications' => (int) ($appCounts[$job->id] ?? 0),
@@ -243,7 +244,16 @@ class DashboardController extends Controller
 
                 return [
                     ...$job,
-                    'school' => $this->schoolNames->resolve($job['source_schema'], $job['created_by'], $job['department']),
+                    // resolveReal() (not resolve()) deliberately — this report
+                    // must never substitute the job's internal department
+                    // label as if it were a school name. A handful of active
+                    // postings have a created_by pointing at a user id that no
+                    // longer exists in the origin schema (confirmed via direct
+                    // query), so their real school genuinely can't be
+                    // resolved — that has to read as "Unknown school", not a
+                    // department name that happens to look like one.
+                    'school' => $this->schoolNames->resolveReal($job['source_schema'], $job['created_by']),
+                    'country' => $this->schoolNames->resolveCountry($job['source_schema'], $job['created_by']),
                     'diagnosis' => $diagnosis,
                 ];
             })
