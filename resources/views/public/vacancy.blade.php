@@ -37,7 +37,16 @@
                         {{ $applicationsClosed ? 'Closed' : 'Active' }}
                     </span>
                 </div>
-                <div class="text-[15px] font-bold text-ttn-primary-dark mb-3">{{ $schoolName }}</div>
+                <div class="flex items-center gap-2.5 mb-3">
+                    @if($schoolLogoUrl)
+                        <img
+                            src="{{ $schoolLogoUrl }}" alt="{{ $schoolName }}"
+                            class="h-9 w-9 shrink-0 rounded-full border border-ttn-border object-cover bg-white"
+                            onerror="this.remove()"
+                        >
+                    @endif
+                    <div class="text-[15px] font-bold text-ttn-primary-dark">{{ $schoolName }}</div>
+                </div>
 
                 <div class="flex flex-wrap gap-2 mb-5">
                     @if(!empty($job['location']))

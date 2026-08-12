@@ -45,6 +45,7 @@ class PublicVacancyController extends Controller
         }
 
         $schoolName = $this->schoolNames->resolve($job['source_schema'], $job['created_by'] ?? null, $job['department'] ?? null);
+        $schoolLogoUrl = $this->schoolNames->resolveLogoUrl($job['source_schema'], $job['created_by'] ?? null);
 
         $deadline = $job['application_deadline'] ? Carbon::parse($job['application_deadline']) : null;
         $deadlinePassed = $deadline ? $deadline->isPast() : false;
@@ -62,6 +63,7 @@ class PublicVacancyController extends Controller
             'uuid' => $uuid,
             'job' => $job,
             'schoolName' => $schoolName,
+            'schoolLogoUrl' => $schoolLogoUrl,
             'description' => $this->sanitizer->plainDescription($job['description'] ?? null),
             'sections' => $this->sanitizer->sections((object) $job, null),
             'deadline' => $deadline,
