@@ -134,7 +134,7 @@
                 </div>
             @else
                 <div
-                    x-data="jobHealthTable(@json($jobHealth['postings']))"
+                    x-data='jobHealthTable(@json($jobHealth['postings']))'
                     class="rounded-2xl border border-ttn-border bg-ttn-card p-5"
                 >
                     <div class="flex justify-between items-center mb-3.5 flex-wrap gap-2.5">
