@@ -17,4 +17,5 @@ return [
     'toggle_theme' => 'Badilisha mwonekano mwepesi / mweusi',
     'try_again' => 'Imeshindikana kupakia kwa sasa. Tafadhali jaribu tena.',
     'coming_soon' => 'Inakuja hivi karibuni',
+    'search' => 'Tafuta',
 ];

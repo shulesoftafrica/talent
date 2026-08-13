@@ -14,5 +14,6 @@ return [
     'ops_queue' => 'Queue',
     'ops_ai_usage' => 'AI Usage',
     'ops_analytics' => 'Analytics',
+    'ops_feedback' => 'Feedback',
     'ops_sign_out' => 'Sign out (:name)',
 ];

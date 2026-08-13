@@ -1,4 +1,4 @@
-@props(['candidate', 'active', 'title', 'subtitle' => null])
+@props(['candidate', 'active', 'title', 'subtitle' => null, 'feedbackContext' => null])
 
 <x-layout :title="$title . ' — ShuleSoft Talent Network'">
     {{-- At lg+, the whole layout is pinned to the viewport height and only
@@ -103,4 +103,6 @@
             </form>
         </nav>
     </div>
+
+    <x-feedback-bubble :context-label="$feedbackContext ?? $title" />
 </x-layout>

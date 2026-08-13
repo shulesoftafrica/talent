@@ -17,4 +17,5 @@ return [
     'toggle_theme' => 'Basculer entre clair et sombre',
     'try_again' => 'Impossible de charger pour le moment. Veuillez réessayer.',
     'coming_soon' => 'Bientôt disponible',
+    'search' => 'Rechercher',
 ];

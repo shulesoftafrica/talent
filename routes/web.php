@@ -12,6 +12,7 @@ use App\Http\Controllers\Candidate\InterviewResponseController;
 use App\Http\Controllers\Candidate\BackgroundVerificationController;
 use App\Http\Controllers\Candidate\EducationVerificationController;
 use App\Http\Controllers\Candidate\EmploymentVerificationController;
+use App\Http\Controllers\Candidate\FeedbackController;
 use App\Http\Controllers\Candidate\JobMatchesController;
 use App\Http\Controllers\Candidate\LicenseVerificationController;
 use App\Http\Controllers\Candidate\ReferenceVerificationController;
@@ -31,6 +32,7 @@ use App\Http\Controllers\Officer\AiUsageController as OfficerAiUsageController;
 use App\Http\Controllers\Officer\AnalyticsController as OfficerAnalyticsController;
 use App\Http\Controllers\Officer\AuthController as OfficerAuthController;
 use App\Http\Controllers\Officer\DashboardController as OfficerDashboardController;
+use App\Http\Controllers\Officer\FeedbackController as OfficerFeedbackController;
 use App\Http\Controllers\Officer\OtpController as OfficerOtpController;
 use App\Http\Controllers\Officer\QueueController as OfficerQueueController;
 use App\Http\Middleware\EnsureOfficerHasVerificationAccess;
@@ -199,6 +201,11 @@ Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->pref
     });
 
     Route::post('/trainings/{training}/enroll', [TrainingController::class, 'enroll'])->name('trainings.enroll');
+
+    Route::prefix('feedback')->name('feedback.')->group(function () {
+        Route::get('/', [FeedbackController::class, 'index'])->name('index');
+        Route::post('/', [FeedbackController::class, 'store'])->name('store');
+    });
 });
 
 Route::prefix('officer')->name('officer.')->group(function () {
@@ -220,5 +227,14 @@ Route::prefix('officer')->name('officer.')->group(function () {
         Route::post('/queue/{item}/note', [OfficerQueueController::class, 'addNote'])->name('queue.note');
         Route::get('/ai-usage', [OfficerAiUsageController::class, 'index'])->name('ai-usage');
         Route::get('/analytics', [OfficerAnalyticsController::class, 'index'])->name('analytics');
+
+        Route::prefix('feedback')->name('feedback.')->group(function () {
+            Route::get('/', [OfficerFeedbackController::class, 'index'])->name('index');
+            Route::get('/{item}', [OfficerFeedbackController::class, 'show'])->name('show');
+            Route::post('/{item}/status', [OfficerFeedbackController::class, 'updateStatus'])->name('status');
+            Route::post('/{item}/assign', [OfficerFeedbackController::class, 'assign'])->name('assign');
+            Route::post('/{item}/respond', [OfficerFeedbackController::class, 'respond'])->name('respond');
+            Route::post('/{item}/notes', [OfficerFeedbackController::class, 'addNote'])->name('notes');
+        });
     });
 });

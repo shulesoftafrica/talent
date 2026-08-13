@@ -17,4 +17,5 @@ return [
     'toggle_theme' => 'Toggle light / dark mode',
     'try_again' => 'Could not load this right now. Please try again.',
     'coming_soon' => 'Coming soon',
+    'search' => 'Search',
 ];

@@ -1,4 +1,5 @@
-<x-candidate-shell :candidate="$candidate" active="applications" :title="__('applications.title')" :subtitle="__('applications.subtitle')">
+<x-candidate-shell :candidate="$candidate" active="applications" :title="__('applications.title')" :subtitle="__('applications.subtitle')"
+    :feedback-context="isset($selected) && $selected ? __('applications.title') . ' — ' . $selected['title'] : __('applications.title')">
     <x-slot:rail>
         @include('candidate._rail')
     </x-slot:rail>
@@ -284,10 +285,12 @@
                     @endif
                 </div>
 
-                <div class="flex gap-2">
+                <div class="flex gap-2 mb-3">
                     <button type="button" @click="open = false" class="flex-1 rounded-lg border border-ttn-border px-4 py-2.5 text-[12.5px] font-bold text-ttn-text2 cursor-pointer">{{ __('applications.applied_confirmation_dismiss') }}</button>
                     <a href="{{ route('candidate.profile') }}" class="flex-1 rounded-lg bg-ttn-primary px-4 py-2.5 text-[12.5px] font-bold text-white text-center">{{ __('applications.applied_confirmation_cta') }}</a>
                 </div>
+
+                <x-quick-rating event-key="after_job_application" :context-label="__('applications.title') . ' — ' . $selected['title']" />
             </div>
         </div>
     @endif

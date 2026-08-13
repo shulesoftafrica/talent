@@ -14,5 +14,6 @@ return [
     'ops_queue' => 'File d\'attente',
     'ops_ai_usage' => 'Utilisation IA',
     'ops_analytics' => 'Statistiques',
+    'ops_feedback' => 'Avis',
     'ops_sign_out' => 'Déconnexion (:name)',
 ];

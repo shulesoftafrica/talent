@@ -132,6 +132,11 @@ class Candidate extends Authenticatable
         return $this->hasMany(AiUsageLog::class);
     }
 
+    public function feedbackItems(): HasMany
+    {
+        return $this->hasMany(FeedbackItem::class);
+    }
+
     public function isInTanzania(): bool
     {
         return $this->country_id === self::TANZANIA_COUNTRY_ID;

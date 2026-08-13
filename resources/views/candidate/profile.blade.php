@@ -157,6 +157,13 @@
         </div>
     </div>
 
+    @if ($candidate->profile_strength === 100)
+        <div x-data="{ rated: localStorage.getItem('ttn-rated-profile-100') === '1' }" x-show="!rated" x-cloak
+             @quick-rating-sent.window="rated = true; localStorage.setItem('ttn-rated-profile-100', '1')" class="mb-4">
+            <x-quick-rating event-key="after_profile_completion" :context-label="__('nav.profile') . ' — ' . __('profile.completion_title')" />
+        </div>
+    @endif
+
     @include('candidate.career-builder._card')
 
     {{-- Experience --}}
