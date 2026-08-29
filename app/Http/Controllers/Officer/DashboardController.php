@@ -167,18 +167,9 @@ class DashboardController extends Controller
     private function subjectSupplyDemand(Collection $candidatesBySubject, Collection $activeJobs): array
     {
         $jobsBySubject = collect();
-        // One example posting per subject (first one found with a uuid to
-        // link to — older pre-backfill postings can have a null uuid) so
-        // the table can offer a quick "see what this looks like publicly"
-        // link without needing a full jobs-by-subject listing page.
-        $exampleJobBySubject = collect();
         foreach ($activeJobs as $job) {
             foreach ($job['subject_ids'] as $subjectId) {
                 $jobsBySubject[$subjectId] = ($jobsBySubject[$subjectId] ?? 0) + 1;
-
-                if (!$exampleJobBySubject->has($subjectId) && $job['uuid']) {
-                    $exampleJobBySubject[$subjectId] = $job['uuid'];
-                }
             }
         }
 
@@ -190,7 +181,7 @@ class DashboardController extends Controller
 
         $subjectNames = ReferSubject::whereIn('subject_id', $subjectIds)->pluck('subject_name', 'subject_id');
 
-        $rows = $subjectIds->map(function ($id) use ($candidatesBySubject, $jobsBySubject, $subjectNames, $exampleJobBySubject) {
+        $rows = $subjectIds->map(function ($id) use ($candidatesBySubject, $jobsBySubject, $subjectNames) {
             $candidates = (int) ($candidatesBySubject[$id] ?? 0);
             $jobs = (int) ($jobsBySubject[$id] ?? 0);
 
@@ -199,7 +190,6 @@ class DashboardController extends Controller
                 'candidates' => $candidates,
                 'jobs' => $jobs,
                 'gap' => $candidates - $jobs,
-                'example_job_uuid' => $exampleJobBySubject[$id] ?? null,
             ];
         })
             // Biggest shortages (most negative gap) first — that's what
@@ -265,6 +255,7 @@ class DashboardController extends Controller
                     // the diagnosis/resolution above, not display fields.
                     'source_schema' => $job['source_schema'],
                     'id' => $job['id'],
+                    'uuid' => $job['uuid'],
                     'title' => $job['title'],
                     'location' => $job['location'],
                     'days_live' => $job['days_live'],

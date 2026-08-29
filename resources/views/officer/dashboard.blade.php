@@ -70,7 +70,6 @@
                                 <th class="text-right py-2 px-2 font-bold">{{ __('officer.subject_balance_col_jobs') }}</th>
                                 <th class="py-2 px-2 font-bold w-[160px]">{{ __('officer.subject_balance_col_balance') }}</th>
                                 <th class="text-right py-2 pl-2 font-bold">{{ __('officer.subject_balance_col_gap') }}</th>
-                                <th class="py-2 pl-2 font-bold w-10"><span class="sr-only">{{ __('officer.subject_balance_col_view') }}</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -95,15 +94,6 @@
                                     </td>
                                     <td class="py-3 pl-2 text-right font-bold whitespace-nowrap {{ $row['gap'] < 0 ? 'text-ttn-red' : ($row['gap'] > 0 ? 'text-ttn-primary-dark' : 'text-ttn-text2') }}">
                                         {{ $row['gap'] > 0 ? '+' : '' }}{{ number_format($row['gap']) }}
-                                    </td>
-                                    <td class="py-3 pl-2 text-right">
-                                        @if ($row['example_job_uuid'])
-                                            <a href="{{ route('public.vacancy', $row['example_job_uuid']) }}" target="_blank" rel="noopener"
-                                               class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-ttn-text2 hover:bg-ttn-subtle hover:text-ttn-primary-dark"
-                                               title="{{ __('officer.subject_balance_col_view') }}">
-                                                ↗
-                                            </a>
-                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -160,7 +150,7 @@
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="w-full text-[12.5px] min-w-[760px]">
+                        <table class="w-full text-[12.5px] min-w-[820px]">
                             <thead>
                                 <tr class="text-[10.5px] font-bold uppercase tracking-wide text-ttn-text2 border-b border-ttn-border">
                                     <th class="text-left py-2 pr-2 font-bold">{{ __('officer.job_health_col_vacancy') }}</th>
@@ -174,6 +164,7 @@
                                         {{ __('officer.job_health_col_applications') }} <span x-text="sortArrow('applications')"></span>
                                     </th>
                                     <th class="text-left py-2 pl-2 font-bold">{{ __('officer.job_health_col_diagnosis') }}</th>
+                                    <th class="py-2 pl-2 font-bold w-10"><span class="sr-only">{{ __('officer.job_health_col_view') }}</span></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -191,10 +182,17 @@
                                         <td class="py-3 px-2 text-right text-ttn-text2" x-text="row.days_live"></td>
                                         <td class="py-3 px-2 text-right text-ttn-text2" x-text="row.applications"></td>
                                         <td class="py-3 pl-2 whitespace-nowrap" :class="row.flagged ? 'text-ttn-text2' : 'text-ttn-primary-dark font-semibold'" x-text="row.diagnosis"></td>
+                                        <td class="py-3 pl-2 text-right">
+                                            <a x-show="row.uuid" :href="'{{ url('/jobs') }}/' + row.uuid" target="_blank" rel="noopener"
+                                               class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-ttn-text2 hover:bg-ttn-subtle hover:text-ttn-primary-dark"
+                                               title="{{ __('officer.job_health_col_view') }}">
+                                                ↗
+                                            </a>
+                                        </td>
                                     </tr>
                                 </template>
                                 <tr x-show="filtered.length === 0">
-                                    <td colspan="7" class="py-6 text-center text-ttn-text2">{{ __('officer.job_health_no_results') }}</td>
+                                    <td colspan="8" class="py-6 text-center text-ttn-text2">{{ __('officer.job_health_no_results') }}</td>
                                 </tr>
                             </tbody>
                         </table>

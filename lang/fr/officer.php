@@ -30,7 +30,6 @@ return [
     'subject_balance_col_jobs' => 'Postes Ouverts',
     'subject_balance_col_balance' => 'Équilibre',
     'subject_balance_col_gap' => 'Écart',
-    'subject_balance_col_view' => 'Voir l\'annonce publique',
 
     'job_health_title' => 'Postes actifs nécessitant une attention',
     'job_health_subtitle' => 'Basé sur le nombre réel de candidatures et l\'offre de matières enseignées — aucune donnée d\'invitation ou de référence salariale n\'existe encore, donc rien ici n\'est estimé.',
@@ -49,6 +48,7 @@ return [
     'job_health_col_days_live' => 'Jours Actif',
     'job_health_col_applications' => 'Candidatures',
     'job_health_col_diagnosis' => 'Diagnostic',
+    'job_health_col_view' => 'Voir l\'annonce publique',
     'job_health_unknown_school' => 'École inconnue',
     'job_health_unknown' => '—',
     'job_health_search_placeholder' => 'Rechercher poste, école, lieu...',

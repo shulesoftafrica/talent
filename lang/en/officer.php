@@ -30,7 +30,6 @@ return [
     'subject_balance_col_jobs' => 'Open Jobs',
     'subject_balance_col_balance' => 'Balance',
     'subject_balance_col_gap' => 'Gap',
-    'subject_balance_col_view' => 'View public posting',
 
     'job_health_title' => 'Active postings needing attention',
     'job_health_subtitle' => 'Based on real application counts and teaching-subject supply — no invitation or salary-benchmark data exists yet, so nothing here is estimated.',
@@ -49,6 +48,7 @@ return [
     'job_health_col_days_live' => 'Days Live',
     'job_health_col_applications' => 'Applications',
     'job_health_col_diagnosis' => 'Diagnosis',
+    'job_health_col_view' => 'View public posting',
     'job_health_unknown_school' => 'Unknown school',
     'job_health_unknown' => '—',
     'job_health_search_placeholder' => 'Search vacancy, school, location...',

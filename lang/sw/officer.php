@@ -30,7 +30,6 @@ return [
     'subject_balance_col_jobs' => 'Nafasi Wazi',
     'subject_balance_col_balance' => 'Uwiano',
     'subject_balance_col_gap' => 'Tofauti',
-    'subject_balance_col_view' => 'Angalia tangazo la umma',
 
     'job_health_title' => 'Nafasi wazi zinazohitaji uangalizi',
     'job_health_subtitle' => 'Kwa kutumia idadi halisi ya maombi na usambazaji wa masomo — hakuna taarifa za mialiko au bei za soko bado, hivyo hakuna kinachokadiriwa hapa.',
@@ -49,6 +48,7 @@ return [
     'job_health_col_days_live' => 'Siku Zilizopita',
     'job_health_col_applications' => 'Maombi',
     'job_health_col_diagnosis' => 'Uchunguzi',
+    'job_health_col_view' => 'Angalia tangazo la umma',
     'job_health_unknown_school' => 'Shule haijulikani',
     'job_health_unknown' => '—',
     'job_health_search_placeholder' => 'Tafuta nafasi, shule, eneo...',
