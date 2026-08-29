@@ -30,6 +30,7 @@ return [
     'subject_balance_col_jobs' => 'Postes Ouverts',
     'subject_balance_col_balance' => 'Équilibre',
     'subject_balance_col_gap' => 'Écart',
+    'subject_balance_col_view' => 'Voir l\'annonce publique',
 
     'job_health_title' => 'Postes actifs nécessitant une attention',
     'job_health_subtitle' => 'Basé sur le nombre réel de candidatures et l\'offre de matières enseignées — aucune donnée d\'invitation ou de référence salariale n\'existe encore, donc rien ici n\'est estimé.',

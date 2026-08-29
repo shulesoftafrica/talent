@@ -104,7 +104,7 @@ class DashboardController extends Controller
         foreach (['shulesoft', 'safaribook'] as $schema) {
             $jobs = DB::connection($schema)->table('job_postings')
                 ->where('status', 'active')
-                ->select('id', 'title', 'department', 'created_by', 'hiring_manager_id', 'created_at', 'location')
+                ->select('id', 'uuid', 'title', 'department', 'created_by', 'hiring_manager_id', 'created_at', 'location')
                 ->get();
 
             if ($jobs->isEmpty()) {
@@ -139,6 +139,7 @@ class DashboardController extends Controller
                 $rows->push([
                     'source_schema' => $schema,
                     'id' => $job->id,
+                    'uuid' => $job->uuid,
                     'title' => $job->title,
                     'department' => $job->department,
                     'location' => $job->location,
@@ -166,9 +167,18 @@ class DashboardController extends Controller
     private function subjectSupplyDemand(Collection $candidatesBySubject, Collection $activeJobs): array
     {
         $jobsBySubject = collect();
+        // One example posting per subject (first one found with a uuid to
+        // link to — older pre-backfill postings can have a null uuid) so
+        // the table can offer a quick "see what this looks like publicly"
+        // link without needing a full jobs-by-subject listing page.
+        $exampleJobBySubject = collect();
         foreach ($activeJobs as $job) {
             foreach ($job['subject_ids'] as $subjectId) {
                 $jobsBySubject[$subjectId] = ($jobsBySubject[$subjectId] ?? 0) + 1;
+
+                if (!$exampleJobBySubject->has($subjectId) && $job['uuid']) {
+                    $exampleJobBySubject[$subjectId] = $job['uuid'];
+                }
             }
         }
 
@@ -180,7 +190,7 @@ class DashboardController extends Controller
 
         $subjectNames = ReferSubject::whereIn('subject_id', $subjectIds)->pluck('subject_name', 'subject_id');
 
-        $rows = $subjectIds->map(function ($id) use ($candidatesBySubject, $jobsBySubject, $subjectNames) {
+        $rows = $subjectIds->map(function ($id) use ($candidatesBySubject, $jobsBySubject, $subjectNames, $exampleJobBySubject) {
             $candidates = (int) ($candidatesBySubject[$id] ?? 0);
             $jobs = (int) ($jobsBySubject[$id] ?? 0);
 
@@ -189,6 +199,7 @@ class DashboardController extends Controller
                 'candidates' => $candidates,
                 'jobs' => $jobs,
                 'gap' => $candidates - $jobs,
+                'example_job_uuid' => $exampleJobBySubject[$id] ?? null,
             ];
         })
             // Biggest shortages (most negative gap) first — that's what

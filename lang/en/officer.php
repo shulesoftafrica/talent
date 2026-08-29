@@ -30,6 +30,7 @@ return [
     'subject_balance_col_jobs' => 'Open Jobs',
     'subject_balance_col_balance' => 'Balance',
     'subject_balance_col_gap' => 'Gap',
+    'subject_balance_col_view' => 'View public posting',
 
     'job_health_title' => 'Active postings needing attention',
     'job_health_subtitle' => 'Based on real application counts and teaching-subject supply — no invitation or salary-benchmark data exists yet, so nothing here is estimated.',

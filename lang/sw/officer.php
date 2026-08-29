@@ -30,6 +30,7 @@ return [
     'subject_balance_col_jobs' => 'Nafasi Wazi',
     'subject_balance_col_balance' => 'Uwiano',
     'subject_balance_col_gap' => 'Tofauti',
+    'subject_balance_col_view' => 'Angalia tangazo la umma',
 
     'job_health_title' => 'Nafasi wazi zinazohitaji uangalizi',
     'job_health_subtitle' => 'Kwa kutumia idadi halisi ya maombi na usambazaji wa masomo — hakuna taarifa za mialiko au bei za soko bado, hivyo hakuna kinachokadiriwa hapa.',

@@ -70,6 +70,7 @@
                                 <th class="text-right py-2 px-2 font-bold">{{ __('officer.subject_balance_col_jobs') }}</th>
                                 <th class="py-2 px-2 font-bold w-[160px]">{{ __('officer.subject_balance_col_balance') }}</th>
                                 <th class="text-right py-2 pl-2 font-bold">{{ __('officer.subject_balance_col_gap') }}</th>
+                                <th class="py-2 pl-2 font-bold w-10"><span class="sr-only">{{ __('officer.subject_balance_col_view') }}</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -94,6 +95,15 @@
                                     </td>
                                     <td class="py-3 pl-2 text-right font-bold whitespace-nowrap {{ $row['gap'] < 0 ? 'text-ttn-red' : ($row['gap'] > 0 ? 'text-ttn-primary-dark' : 'text-ttn-text2') }}">
                                         {{ $row['gap'] > 0 ? '+' : '' }}{{ number_format($row['gap']) }}
+                                    </td>
+                                    <td class="py-3 pl-2 text-right">
+                                        @if ($row['example_job_uuid'])
+                                            <a href="{{ route('public.vacancy', $row['example_job_uuid']) }}" target="_blank" rel="noopener"
+                                               class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-ttn-text2 hover:bg-ttn-subtle hover:text-ttn-primary-dark"
+                                               title="{{ __('officer.subject_balance_col_view') }}">
+                                                ↗
+                                            </a>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
