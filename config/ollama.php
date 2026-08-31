@@ -19,12 +19,19 @@ return [
 
     // qwen3 is the only model installed on the live server. It's a
     // "thinking" model that spends real time on chain-of-thought before
-    // the actual answer, so this is meaningfully slower than a plain
-    // completion model — acceptable since this path only ever runs
-    // because OpenAI has already failed.
+    // the actual answer — confirmed live that even a trivial 10-token
+    // request takes ~5s of pure inference, so a realistic ~800-token
+    // prompt runs well past a minute on this (CPU-only) host.
     'model' => env('OLLAMA_MODEL', 'qwen3:latest'),
 
-    // Self-hosted inference is much slower than OpenAI, and this path only
-    // runs when OpenAI has already failed, so it's given a generous budget.
-    'request_timeout' => (int) env('OLLAMA_REQUEST_TIMEOUT', 120),
+    // This path is reached synchronously, inside a normal web request
+    // (e.g. a candidate's job-match page load) — it is NOT a background
+    // job. Cloudflare's own proxy timeout (~100s) is shorter than the
+    // "generous" 120-280s this used to allow, so a slow Ollama response
+    // could never actually reach the browser either way — the request
+    // just died at the CDN with the page hung the whole time. Kept short
+    // enough that OpenAI-fails + Ollama-fails always finishes well inside
+    // Cloudflare's window, falling through fast to the caller's own
+    // rule-based degradation instead of hanging the page for minutes.
+    'request_timeout' => (int) env('OLLAMA_REQUEST_TIMEOUT', 10),
 ];
