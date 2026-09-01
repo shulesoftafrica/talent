@@ -24,7 +24,7 @@ class CvParserService
 
         if ($extension === 'pdf') {
             $parser = new PdfParser();
-            return $parser->parseFile($file->getRealPath())->getText();
+            return $this->sanitizeUtf8($parser->parseFile($file->getRealPath())->getText());
         }
 
         if (in_array($extension, ['docx', 'doc'], true)) {
@@ -35,10 +35,29 @@ class CvParserService
                     $text .= $this->elementText($element);
                 }
             }
-            return $text;
+            return $this->sanitizeUtf8($text);
         }
 
         throw new \InvalidArgumentException("Unsupported CV file type: {$extension}");
+    }
+
+    /**
+     * PDF text extraction (and, less commonly, DOCX) can produce byte
+     * sequences that aren't valid UTF-8 — unusual font subsetting,
+     * ligatures, or embedded symbols in the source document. That later
+     * breaks json_encode() when this text is sent to the AI API as part
+     * of the request payload, silently killing CV parsing for that
+     * specific candidate with no useful error (confirmed live: a real CV
+     * whose extracted text failed json_encode with "Malformed UTF-8
+     * characters", for both the OpenAI and Ollama providers, before the
+     * request even went out). Strip anything that isn't valid UTF-8
+     * rather than let it corrupt every downstream consumer of this text.
+     */
+    private function sanitizeUtf8(string $text): string
+    {
+        $clean = @iconv('UTF-8', 'UTF-8//IGNORE', $text);
+
+        return $clean !== false ? $clean : preg_replace('/[^\x09\x0A\x0D\x20-\x7E]/', '', $text);
     }
 
     /**
