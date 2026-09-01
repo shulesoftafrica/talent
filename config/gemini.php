@@ -20,9 +20,12 @@ return [
     'api_key' => env('GEMINI_API_KEY'),
 
     // "Flash-Lite" is the cheapest/fastest tier — right fit for a short,
-    // structured-JSON extraction task like this. Override via env if a
-    // newer model generation is preferred without a code change.
-    'model' => env('GEMINI_MODEL', 'gemini-2.5-flash-lite'),
+    // structured-JSON extraction task like this. gemini-2.5-flash-lite is
+    // no longer available to new API keys — confirmed live via Google's
+    // own 404 response, which named gemini-3.5-flash-lite as the
+    // replacement. Override via env if a newer model generation is
+    // preferred without a code change.
+    'model' => env('GEMINI_MODEL', 'gemini-3.5-flash-lite'),
 
     'max_tokens' => (int) env('GEMINI_MAX_TOKENS', 800),
     'temperature' => (float) env('GEMINI_TEMPERATURE', 0.3),
@@ -40,13 +43,17 @@ return [
     |
     | USD per 1,000,000 tokens, by model, used by GeminiClient to estimate
     | the cost of every call for ai_usage_logs. 'default' covers any model
-    | not listed here. Update when pricing changes or a new model is
-    | introduced — figures below are Flash-Lite/Flash's public per-token
-    | pricing, an order of magnitude below gpt-4o-mini.
+    | not listed here. The 3.5 generation's confirmed live to exist (its
+    | predecessor 2.5-flash-lite does not, for new keys) but its exact
+    | per-token pricing wasn't available to verify here — carried over
+    | from 2.5-flash-lite's public pricing as a same-tier estimate; check
+    | Google's current pricing page and correct this if it's materially
+    | off, since it only affects the cost *estimate* shown in ai_usage_logs,
+    | not actual billing (Google bills your account directly regardless).
     */
     'pricing_per_million_tokens' => [
-        'gemini-2.5-flash-lite' => ['input' => 0.10, 'output' => 0.40],
-        'gemini-2.5-flash' => ['input' => 0.30, 'output' => 2.50],
+        'gemini-3.5-flash-lite' => ['input' => 0.10, 'output' => 0.40],
+        'gemini-3.5-flash' => ['input' => 0.30, 'output' => 2.50],
         'default' => ['input' => 0.10, 'output' => 0.40],
     ],
 ];
