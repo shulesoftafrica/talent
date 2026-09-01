@@ -7,15 +7,16 @@ use PhpOffice\PhpWord\IOFactory as WordIOFactory;
 use Smalot\PdfParser\Parser as PdfParser;
 
 /**
- * Extracts raw text from an uploaded CV (PDF or DOCX) and asks OpenAI to
- * turn it into a structured profile the candidate can confirm before it's
- * saved — matching the mockup's "CV parsed — please confirm your details"
- * step.
+ * Extracts raw text from an uploaded CV (PDF or DOCX) and asks AI to turn
+ * it into a structured profile the candidate can confirm before it's saved
+ * — matching the mockup's "CV parsed — please confirm your details" step.
  */
 class CvParserService
 {
-    public function __construct(private readonly OpenAiClient $openAi)
-    {
+    public function __construct(
+        private readonly OpenAiClient $openAi,
+        private readonly GeminiClient $gemini,
+    ) {
     }
 
     public function extractText(UploadedFile $file): string
@@ -126,6 +127,15 @@ class CvParserService
         // No candidate_id here — this runs during signup, before the
         // candidate record exists, so cost tracking logs it under
         // AiFeature::CV_PARSE with candidate_id null.
-        return $this->openAi->chatJson($system, $rawText, maxTokens: 3000, feature: AiFeature::CV_PARSE);
+        //
+        // Gemini Flash-Lite first — a short, structured-extraction task
+        // like this doesn't need OpenAI's higher price point, and Gemini
+        // is roughly an order of magnitude cheaper per token. Falls
+        // through to the existing OpenAI (+ Ollama) chain if Gemini isn't
+        // configured or its call fails for any reason, so this stays
+        // resilient even before a Gemini key is set up.
+        $parsed = $this->gemini->chatJson($system, $rawText, maxTokens: 3000, feature: AiFeature::CV_PARSE);
+
+        return $parsed ?? $this->openAi->chatJson($system, $rawText, maxTokens: 3000, feature: AiFeature::CV_PARSE);
     }
 }
