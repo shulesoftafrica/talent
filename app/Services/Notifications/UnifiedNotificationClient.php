@@ -43,13 +43,27 @@ class UnifiedNotificationClient
             return null;
         }
 
-        $response = Http::withToken($bearerToken)
+        $send = fn () => Http::withToken($bearerToken)
             ->acceptJson()
             ->timeout(30)
             ->post(rtrim($baseUrl, '/') . '/api/notifications/send', [
                 'schema_name' => $schemaName,
                 ...$payload,
             ]);
+
+        $response = $send();
+
+        // The API enforces a hard 2-requests-per-second cap and tells us
+        // exactly how long to wait in its own 429 body — confirmed live
+        // that this fires often enough in normal (non-batch) usage to be
+        // worth one respectful retry rather than silently dropping the
+        // notification, same lesson already applied to the bulk invite
+        // script's own call pattern.
+        if ($response->status() === 429) {
+            $retryAfter = (float) ($response->json('retry_after') ?? 1);
+            usleep((int) (min($retryAfter, 5) * 1_000_000));
+            $response = $send();
+        }
 
         if (!$response->successful()) {
             Log::error('UnifiedNotificationClient: send failed', [

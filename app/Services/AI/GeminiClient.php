@@ -81,7 +81,7 @@ class GeminiClient
     private function attemptGemini(string $system, string $user, bool $json, ?int $maxTokens): array
     {
         $apiKey = config('gemini.api_key');
-        $model = config('gemini.model', 'gemini-2.5-flash-lite');
+        $model = config('gemini.model', 'gemini-3.5-flash-lite');
         $emptyUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
 
         if (empty($apiKey)) {
@@ -102,13 +102,29 @@ class GeminiClient
             $payload['response_format'] = ['type' => 'json_object'];
         }
 
-        try {
-            $response = Http::withToken($apiKey)
-                ->timeout(config('gemini.request_timeout', 15))
-                ->post(self::ENDPOINT, $payload);
-        } catch (\Throwable $e) {
-            Log::error('GeminiClient: network error', ['error' => $e->getMessage()]);
-            return ['success' => false, 'content' => null, 'error' => $e->getMessage(), 'model' => $model, 'status' => 'failed', 'usage' => $emptyUsage];
+        // Gemini's API returns a transient 503 fairly often under load —
+        // Google's own guidance is to retry these rather than treat them
+        // as a hard failure (confirmed live: frequent 503s here, needlessly
+        // pushing every one of those requests into the OpenAI+Ollama
+        // fallback, which right now can't actually serve them either).
+        // One short retry meaningfully improves real success rate without
+        // risking Cloudflare's own proxy timeout.
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $response = Http::withToken($apiKey)
+                    ->timeout(config('gemini.request_timeout', 25))
+                    ->post(self::ENDPOINT, $payload);
+            } catch (\Throwable $e) {
+                Log::error('GeminiClient: network error', ['error' => $e->getMessage()]);
+                return ['success' => false, 'content' => null, 'error' => $e->getMessage(), 'model' => $model, 'status' => 'failed', 'usage' => $emptyUsage];
+            }
+
+            if ($response->status() === 503 && $attempt === 1) {
+                usleep(500_000);
+                continue;
+            }
+
+            break;
         }
 
         $usage = $response->json('usage') ?? [];

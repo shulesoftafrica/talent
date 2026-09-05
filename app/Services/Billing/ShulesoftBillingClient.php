@@ -203,8 +203,39 @@ class ShulesoftBillingClient
      */
     private function request(string $method, string $path, array $payload = []): array
     {
-        $baseUrl = rtrim(config('services.billing.api_url'), '/');
         $token = ShulesoftAuthService::getAccessToken() ?? config('services.billing.access_token');
+
+        $response = $this->send($method, $path, $payload, $token);
+
+        // The OAuth token is cached for ~89 days on our side, but the
+        // platform can revoke/rotate it well before that — confirmed live:
+        // a token our cache considered "valid until November" was already
+        // being rejected with 401 in September, with nothing to detect or
+        // recover from it, so every invoice/product call kept failing
+        // silently for as long as the stale token sat in cache. On a 401,
+        // clear the cached token and retry once with a freshly minted one
+        // — but only when the OAuth path is actually in play; retrying
+        // with the same static fallback token would just fail the same
+        // way again.
+        if ($response['status'] === 401 && ShulesoftAuthService::getAccessToken() !== null) {
+            ShulesoftAuthService::clearAuthCache();
+            $freshToken = ShulesoftAuthService::getAccessToken() ?? config('services.billing.access_token');
+
+            if ($freshToken && $freshToken !== $token) {
+                Log::info('ShulesoftBillingClient: retrying after refreshing a stale cached token', ['path' => $path]);
+                $response = $this->send($method, $path, $payload, $freshToken);
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * @return array{success:bool,data:?array,status:?int,error:?string}
+     */
+    private function send(string $method, string $path, array $payload, ?string $token): array
+    {
+        $baseUrl = rtrim(config('services.billing.api_url'), '/');
 
         try {
             $response = Http::withToken($token)

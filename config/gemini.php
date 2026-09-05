@@ -32,9 +32,16 @@ return [
 
     // This path runs synchronously inside a normal web request (a
     // candidate's CV upload) — see config/ollama.php's request_timeout
-    // comment for why a short, bounded timeout matters here (Cloudflare's
-    // own proxy timeout is much shorter than a "generous" AI budget).
-    'request_timeout' => (int) env('GEMINI_REQUEST_TIMEOUT', 15),
+    // comment for why a bounded timeout matters here (Cloudflare's own
+    // proxy timeout is much shorter than a "generous" AI budget). Unlike
+    // Ollama, Gemini is a real cloud API rather than a CPU-bound local
+    // model that can never realistically finish in time — 15s turned out
+    // too tight in practice (confirmed live: a real, successful CV parse
+    // already took ~11.4s, leaving too little margin, and frequent 15002ms
+    // timeouts showed up in production). 25s leaves real headroom while
+    // the OpenAI+Ollama fallback chain after it still comfortably fits
+    // under Cloudflare's ~100s ceiling.
+    'request_timeout' => (int) env('GEMINI_REQUEST_TIMEOUT', 25),
 
     /*
     |--------------------------------------------------------------------------
