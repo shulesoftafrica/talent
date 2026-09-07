@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Candidate;
 
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
+use App\Services\Academy\VacancySkillMatcher;
 use App\Services\AI\JobMatchScorer;
 use App\Services\Jobs\ActiveJobsRepository;
 use App\Services\Jobs\JobContentSanitizer;
@@ -34,6 +35,7 @@ class JobMatchesController extends Controller
         private readonly SchoolNameResolver $schoolNames,
         private readonly JobContentSanitizer $sanitizer,
         private readonly ActiveJobsRepository $activeJobs,
+        private readonly VacancySkillMatcher $skillMatcher,
     ) {
     }
 
@@ -167,6 +169,7 @@ class JobMatchesController extends Controller
             'locked' => false,
             'job' => $job,
             'sections' => $this->sanitizer->sections($rawJob, $schoolName),
+            'skillMatch' => $this->skillMatcher->match($candidate, $sourceSchema, $jobPostingId),
             'applied' => $applied,
             'sourceSchema' => $sourceSchema,
             'jobPostingId' => $jobPostingId,

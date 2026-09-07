@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Models\Constant\ReferCity;
 use App\Models\Constant\ReferCountry;
+use App\Services\Academy\VerifiedSkillsRepository;
 use App\Services\CareerBuilder\CareerBuilderDataService;
 use App\Services\Candidates\ProfileCompletionService;
 use App\Services\Location\CountryDetectionService;
@@ -18,6 +19,7 @@ class ProfileController extends Controller
         private readonly CareerBuilderDataService $careerBuilder,
         private readonly CountryDetectionService $countryDetection,
         private readonly ProfileCompletionService $profileCompletionService,
+        private readonly VerifiedSkillsRepository $verifiedSkills,
     ) {
     }
 
@@ -42,6 +44,7 @@ class ProfileController extends Controller
 
         return view('candidate.profile', [
             'candidate' => $candidate,
+            'academyVerifiedSkills' => $this->verifiedSkills->forCandidate($candidate),
             'profileCompletion' => $profileCompletion,
             'builder' => $this->careerBuilder->build($candidate),
             'countries' => ReferCountry::orderBy('country')->get(['id', 'country', 'country_code']),

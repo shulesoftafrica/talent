@@ -60,6 +60,10 @@ return [
     'other_skills' => 'Autres Compétences',
     'no_skills' => 'Aucune compétence ajoutée pour le moment.',
     'skill_placeholder' => 'ex. Gestion de Classe',
+    'academy_verified_skills' => 'Compétences vérifiées par Academy',
+    'credential' => 'Certificat',
+    'valid_until' => 'valable jusqu\'au',
+    'view_credential' => 'Voir le certificat',
 
     'portfolio' => 'Portfolio Professionnel',
     'portfolio_desc' => "Plans de cours, vidéos pédagogiques, projets et autres preuves de votre travail. Visible par les écoles après votre candidature.",

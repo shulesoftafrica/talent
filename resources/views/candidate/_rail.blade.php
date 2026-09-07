@@ -116,8 +116,8 @@
                                 {{-- Academy LMS courses link out to the course page; talent trainings enrol in-place. --}}
                                 <template x-if="training.url">
                                     <a :href="training.url" target="_blank" rel="noopener"
-                                       class="inline-block rounded-lg bg-ttn-primary px-3.5 py-2 text-[11.5px] font-bold text-white cursor-pointer">
-                                        {{ __('rail.view_course') }}
+                                       class="inline-block rounded-lg bg-ttn-primary px-3.5 py-2 text-[11.5px] font-bold text-white cursor-pointer"
+                                       x-text="training.cta || @js(__('rail.view_course'))">
                                     </a>
                                 </template>
                                 <template x-if="!training.url">

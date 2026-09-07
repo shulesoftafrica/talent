@@ -60,6 +60,10 @@ return [
     'other_skills' => 'Ujuzi Mwingine',
     'no_skills' => 'Hakuna ujuzi ulioongezwa bado.',
     'skill_placeholder' => 'mfano: Usimamizi wa Darasa',
+    'academy_verified_skills' => 'Ujuzi Uliothibitishwa na Academy',
+    'credential' => 'Cheti',
+    'valid_until' => 'kinatumika hadi',
+    'view_credential' => 'Angalia cheti',
 
     'portfolio' => 'Kazi Zako za Kitaaluma',
     'portfolio_desc' => 'Mipango ya somo, video za ufundishaji, miradi, na uthibitisho mwingine wa kazi yako. Huonekana na shule baada ya kuomba.',

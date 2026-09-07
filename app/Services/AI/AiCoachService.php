@@ -4,6 +4,7 @@ namespace App\Services\AI;
 
 use App\Models\Candidate;
 use App\Models\Training;
+use App\Services\Academy\SkillVerificationRecommender;
 use App\Services\Verification\VerificationStatus;
 
 /**
@@ -19,6 +20,7 @@ class AiCoachService
     public function __construct(
         private readonly OpenAiClient $openAi,
         private readonly AcademyCourseRecommender $academyCourses,
+        private readonly SkillVerificationRecommender $academyVerify,
     ) {
     }
 
@@ -116,10 +118,13 @@ class AiCoachService
             ];
         });
 
-        // Academy LMS course recommendations, matched to this candidate's
-        // profession/skills/experience, lead the list; curated talent trainings follow.
+        // Academy integration (learn → then prove): course recommendations to
+        // close skill gaps, plus "Verify this skill" CTAs for skills the candidate
+        // could turn into an employer-trusted verified credential (spec §36).
+        // Verify CTAs lead, then courses, then curated talent trainings.
+        $verifyRecommendations = $this->academyVerify->recommend($candidate);
         $courseRecommendations = $this->academyCourses->recommend($candidate);
-        $recommendations = array_merge($courseRecommendations, $recommendations->all());
+        $recommendations = array_merge($verifyRecommendations, $courseRecommendations, $recommendations->all());
 
         $gaps = $this->profileGaps($candidate);
         $nextSteps = collect($gaps)->map(fn ($gap) => ['label' => $gap['label'], 'impact' => $gap['impact'], 'done' => false])->all();

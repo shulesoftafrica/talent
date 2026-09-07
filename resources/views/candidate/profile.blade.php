@@ -394,6 +394,36 @@
             <button @click="open = !open" class="flex h-7 w-7 items-center justify-center rounded-lg bg-ttn-primary text-lg font-bold text-white cursor-pointer">+</button>
         </div>
         @php $verifiedSkills = $candidate->skills->where('is_verified', true); $otherSkills = $candidate->skills->where('is_verified', false); @endphp
+
+        {{-- Academy-verified skills: proven via a ShuleSoft Academy assessment.
+             Academy is the source of truth — these are read from the Academy
+             credential records by the candidate's durable sid (spec §31–§32). --}}
+        @if (!empty($academyVerifiedSkills) && $academyVerifiedSkills->isNotEmpty())
+            <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-primary-dark mb-2 flex items-center gap-1">
+                <span>🛡️</span> {{ __('profile.academy_verified_skills') }}
+            </div>
+            <div class="flex flex-col gap-2 mb-4">
+                @foreach ($academyVerifiedSkills as $vs)
+                    <div class="flex items-center justify-between gap-3 rounded-xl border border-ttn-primary/30 bg-ttn-primary-light px-3.5 py-2">
+                        <div class="min-w-0">
+                            <div class="text-[13px] font-bold text-ttn-primary-dark truncate">
+                                ✓ {{ $vs['skill_name'] }}
+                                <span class="ml-1 inline-block rounded-full bg-ttn-primary px-2 py-0.5 text-[10px] font-semibold text-white align-middle">{{ $vs['level_name'] }}</span>
+                            </div>
+                            <div class="text-[11px] text-ttn-text2 mt-0.5">
+                                @if (!is_null($vs['score'])){{ rtrim(rtrim(number_format($vs['score'], 2), '0'), '.') }}/100 · @endif
+                                {{ __('profile.credential') }} {{ $vs['credential_number'] }}
+                                @if ($vs['expires_at']) · {{ __('profile.valid_until') }} {{ \Illuminate\Support\Carbon::parse($vs['expires_at'])->format('M Y') }}@endif
+                            </div>
+                        </div>
+                        <a href="{{ $vs['verification_url'] }}" target="_blank" rel="noopener"
+                           class="shrink-0 rounded-lg border border-ttn-primary px-2.5 py-1 text-[11px] font-bold text-ttn-primary-dark hover:bg-ttn-primary hover:text-white transition">
+                            {{ __('profile.view_credential') }}
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        @endif
         @if ($verifiedSkills->isNotEmpty())
             <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-text2 mb-2">{{ __('profile.verified_skills') }}</div>
             <div class="flex flex-wrap gap-2 mb-4">

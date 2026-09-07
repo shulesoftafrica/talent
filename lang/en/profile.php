@@ -60,6 +60,10 @@ return [
     'other_skills' => 'Other Skills',
     'no_skills' => 'No skills added yet.',
     'skill_placeholder' => 'e.g. Classroom Management',
+    'academy_verified_skills' => 'Academy-Verified Skills',
+    'credential' => 'Credential',
+    'valid_until' => 'valid until',
+    'view_credential' => 'View credential',
 
     'portfolio' => 'Professional Portfolio',
     'portfolio_desc' => 'Lesson plans, teaching videos, projects, and other proof of your work. Visible to schools after you apply.',
