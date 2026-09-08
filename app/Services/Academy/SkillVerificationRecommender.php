@@ -4,7 +4,9 @@ namespace App\Services\Academy;
 
 use App\Models\Candidate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * The skill-gap → "Verify this skill" loop (spec §36).
@@ -30,16 +32,30 @@ class SkillVerificationRecommender
     {
         $alreadyVerified = $this->verified->verifiedSkillSlugs($candidate);
 
-        $skills = DB::connection('academy')->table('skills as s')
-            ->join('assessments as a', 'a.skill_id', '=', 's.id')
-            ->leftJoin('category as cat', 'cat.id', '=', 's.category_id')
-            ->where('a.status', 'published')
-            ->where('s.status', 1) // academy.skills.status: 1 = active
-            ->select('s.id', 's.name', 's.slug', 's.description', 'cat.name as category')
-            ->groupBy('s.id', 's.name', 's.slug', 's.description', 'cat.name')
-            ->limit(60)
-            ->get()
-            ->reject(fn (object $s) => in_array($s->slug, $alreadyVerified, true));
+        // Same fail-soft rationale as VerifiedSkillsRepository::forCandidate():
+        // academy.skills/academy.assessments don't exist on live yet (the
+        // Academy side of this integration isn't built out), and this
+        // recommendation is an enhancement on the AI coach panel, not
+        // something worth taking the whole page down for.
+        try {
+            $skills = DB::connection('academy')->table('skills as s')
+                ->join('assessments as a', 'a.skill_id', '=', 's.id')
+                ->leftJoin('category as cat', 'cat.id', '=', 's.category_id')
+                ->where('a.status', 'published')
+                ->where('s.status', 1) // academy.skills.status: 1 = active
+                ->select('s.id', 's.name', 's.slug', 's.description', 'cat.name as category')
+                ->groupBy('s.id', 's.name', 's.slug', 's.description', 'cat.name')
+                ->limit(60)
+                ->get()
+                ->reject(fn (object $s) => in_array($s->slug, $alreadyVerified, true));
+        } catch (Throwable $e) {
+            Log::error('SkillVerificationRecommender: failed to read academy.skills/assessments', [
+                'candidate_id' => $candidate->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
 
         if ($skills->isEmpty()) {
             return [];
