@@ -26,6 +26,9 @@ class GeminiClient
 {
     private const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 
+    /** Native (non-OpenAI-compat) endpoint — the only one that accepts inline file/image content. */
+    private const GENERATE_CONTENT_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
+
     /**
      * @param string $feature One of App\Services\AI\AiFeature's constants, tagging this call for cost reporting.
      * @param array<string, mixed> $meta Small extra context stored alongside the usage log (e.g. job id).
@@ -73,6 +76,118 @@ class GeminiClient
         $decoded = json_decode($result['content'], true);
 
         return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * Sends a file (PDF or image) straight to Gemini's native multimodal
+     * endpoint alongside a text prompt, for documents with nothing for a
+     * text extractor to find client-side — e.g. a CV that's a scanned
+     * photo with no text layer at all (confirmed live: real candidates
+     * submit phone "scan to PDF" files this way). Gemini reads the
+     * document's visual content directly rather than us running OCR and
+     * a separate parse pass.
+     *
+     * Uses the native generateContent endpoint (not the OpenAI-compat one
+     * used elsewhere in this client) because that's what accepts inline
+     * file content; the OpenAI-compat surface here is text-only.
+     *
+     * @return array|null Decoded JSON object, or null on any failure.
+     */
+    public function chatJsonWithFile(
+        string $system,
+        string $filePath,
+        string $mimeType,
+        ?int $maxTokens = null,
+        ?int $candidateId = null,
+        string $feature = 'unknown',
+        array $meta = [],
+    ): ?array {
+        $result = $this->attemptGeminiWithFile($system, $filePath, $mimeType, $maxTokens);
+
+        $this->logUsage($result['model'], $result['status'], $result['usage'], $result['error'], $candidateId, $feature, $meta);
+
+        if (!$result['success'] || !$result['content']) {
+            return null;
+        }
+
+        $decoded = json_decode($result['content'], true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * @return array{success:bool,content:?string,error:?string,model:string,status:string,usage:array{prompt_tokens:int,completion_tokens:int,total_tokens:int}}
+     */
+    private function attemptGeminiWithFile(string $system, string $filePath, string $mimeType, ?int $maxTokens): array
+    {
+        $apiKey = config('gemini.api_key');
+        $model = config('gemini.model', 'gemini-3.5-flash-lite');
+        $emptyUsage = ['prompt_tokens' => 0, 'completion_tokens' => 0, 'total_tokens' => 0];
+
+        if (empty($apiKey)) {
+            return ['success' => false, 'content' => null, 'error' => 'not_configured', 'model' => $model, 'status' => 'not_configured', 'usage' => $emptyUsage];
+        }
+
+        $fileData = @file_get_contents($filePath);
+
+        if ($fileData === false) {
+            return ['success' => false, 'content' => null, 'error' => 'file_read_failed', 'model' => $model, 'status' => 'failed', 'usage' => $emptyUsage];
+        }
+
+        $payload = [
+            'contents' => [[
+                'parts' => [
+                    ['text' => $system],
+                    ['inline_data' => ['mime_type' => $mimeType, 'data' => base64_encode($fileData)]],
+                ],
+            ]],
+            'generationConfig' => [
+                'response_mime_type' => 'application/json',
+                'max_output_tokens' => $maxTokens ?? config('gemini.max_tokens', 800),
+                'temperature' => config('gemini.temperature', 0.3),
+            ],
+        ];
+
+        $endpoint = sprintf(self::GENERATE_CONTENT_ENDPOINT, $model);
+
+        // Same transient-503 retry as attemptGemini() — see that method's
+        // comment for why one short retry is worth it here too.
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $response = Http::withHeaders(['x-goog-api-key' => $apiKey])
+                    ->timeout(config('gemini.request_timeout', 25))
+                    ->post($endpoint, $payload);
+            } catch (\Throwable $e) {
+                Log::error('GeminiClient: network error (file)', ['error' => $e->getMessage()]);
+                return ['success' => false, 'content' => null, 'error' => $e->getMessage(), 'model' => $model, 'status' => 'failed', 'usage' => $emptyUsage];
+            }
+
+            if ($response->status() === 503 && $attempt === 1) {
+                usleep(500_000);
+                continue;
+            }
+
+            break;
+        }
+
+        $usage = $response->json('usageMetadata') ?? [];
+        $promptTokens = (int) ($usage['promptTokenCount'] ?? 0);
+        $completionTokens = (int) ($usage['candidatesTokenCount'] ?? 0);
+        $totalTokens = (int) ($usage['totalTokenCount'] ?? ($promptTokens + $completionTokens));
+        $tokenUsage = ['prompt_tokens' => $promptTokens, 'completion_tokens' => $completionTokens, 'total_tokens' => $totalTokens];
+
+        if (!$response->successful()) {
+            Log::error('GeminiClient: file request failed', [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            return ['success' => false, 'content' => null, 'error' => 'http_' . $response->status(), 'model' => $model, 'status' => 'http_error', 'usage' => $tokenUsage];
+        }
+
+        $content = $response->json('candidates.0.content.parts.0.text');
+
+        return ['success' => true, 'content' => $content, 'error' => null, 'model' => $model, 'status' => 'success', 'usage' => $tokenUsage];
     }
 
     /**

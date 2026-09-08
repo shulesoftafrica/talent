@@ -96,27 +96,48 @@ class CvParserService
     }
 
     /**
+     * Fallback for CVs with no extractable text layer at all — e.g. a
+     * scanned or photographed document (confirmed live: real candidates
+     * submit phone "scan to PDF" files this way, which have embedded page
+     * images but zero fonts/text, so extractText() correctly returns
+     * nothing). Rather than a separate OCR step, this sends the PDF
+     * straight to Gemini's multimodal endpoint, which reads the page
+     * images and structures the content in one pass — and is asked to
+     * also transcribe the visible text, so callers still get something to
+     * store as the candidate's raw CV text. PDF only: DOCX has no scanned
+     * equivalent worth handling.
+     *
+     * @return array{full_name:?string,email:?string,phone:?string,location:?string,experiences:array,educations:array,skills:array,certifications:array,raw_text:?string}|null
+     */
+    public function parseFromFile(UploadedFile $file): ?array
+    {
+        if (strtolower($file->getClientOriginalExtension()) !== 'pdf') {
+            return null;
+        }
+
+        $system = $this->extractionPrompt() . <<<'PROMPT'
+
+
+            Also include a "raw_text" field: a plain-text transcription of
+            everything visible in the document, in addition to the
+            structured fields above.
+            PROMPT;
+
+        return $this->gemini->chatJsonWithFile(
+            $system,
+            $file->getRealPath(),
+            'application/pdf',
+            maxTokens: 3500,
+            feature: AiFeature::CV_PARSE,
+        );
+    }
+
+    /**
      * @return array{full_name:?string,email:?string,phone:?string,location:?string,experiences:array,educations:array,skills:array,certifications:array}|null
      */
     public function parse(string $rawText): ?array
     {
-        $system = <<<'PROMPT'
-            You extract structured candidate profile data from a CV/resume's raw text
-            for a job platform serving schools in Africa (teachers, accountants, drivers,
-            nurses, administrators, and other school staff). Respond ONLY with a JSON
-            object matching exactly this shape, using null/empty arrays for anything not
-            found — never invent data that isn't in the text:
-            {
-              "full_name": string|null,
-              "email": string|null,
-              "phone": string|null,
-              "location": string|null,
-              "experiences": [{"title": string, "organization": string, "location": string|null, "start_date": string|null, "end_date": string|null, "is_current": boolean, "tasks": [string]}],
-              "educations": [{"degree": string, "school": string, "start_year": string|null, "end_year": string|null}],
-              "skills": [string],
-              "certifications": [{"name": string, "issuer": string|null}]
-            }
-            PROMPT;
+        $system = $this->extractionPrompt();
 
         // A rich CV (e.g. many experience entries with several tasks each)
         // easily exceeds the app-wide default max_tokens (800, sized for the
@@ -137,5 +158,26 @@ class CvParserService
         $parsed = $this->gemini->chatJson($system, $rawText, maxTokens: 3000, feature: AiFeature::CV_PARSE);
 
         return $parsed ?? $this->openAi->chatJson($system, $rawText, maxTokens: 3000, feature: AiFeature::CV_PARSE);
+    }
+
+    private function extractionPrompt(): string
+    {
+        return <<<'PROMPT'
+            You extract structured candidate profile data from a CV/resume
+            for a job platform serving schools in Africa (teachers, accountants, drivers,
+            nurses, administrators, and other school staff). Respond ONLY with a JSON
+            object matching exactly this shape, using null/empty arrays for anything not
+            found — never invent data that isn't in the text:
+            {
+              "full_name": string|null,
+              "email": string|null,
+              "phone": string|null,
+              "location": string|null,
+              "experiences": [{"title": string, "organization": string, "location": string|null, "start_date": string|null, "end_date": string|null, "is_current": boolean, "tasks": [string]}],
+              "educations": [{"degree": string, "school": string, "start_year": string|null, "end_year": string|null}],
+              "skills": [string],
+              "certifications": [{"name": string, "issuer": string|null}]
+            }
+            PROMPT;
     }
 }

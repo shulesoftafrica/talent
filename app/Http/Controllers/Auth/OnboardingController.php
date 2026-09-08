@@ -36,18 +36,29 @@ class OnboardingController extends Controller
         $rawText = $parser->extractText($file);
 
         if (trim($rawText) === '') {
-            Storage::disk('local')->delete($storedPath);
+            // No text layer at all — confirmed live this is typically a
+            // phone "scan to PDF" of a physical CV (page images, zero
+            // fonts), not a broken upload. Try Gemini's vision endpoint
+            // directly on the file before giving up on it.
+            $parsed = $parser->parseFromFile($file);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'We could not read any text from that file. Please try a different PDF or DOCX.',
-            ], 422);
+            if ($parsed === null) {
+                Storage::disk('local')->delete($storedPath);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'We could not read any text from that file. Please try a different PDF or DOCX.',
+                ], 422);
+            }
+
+            $rawText = $parsed['raw_text'] ?? '';
+        } else {
+            // AI parsing is a convenience, not a hard requirement — if OpenAI
+            // is unavailable or the account is out of quota, the candidate
+            // can still continue and fill in name/phone manually rather than
+            // being blocked.
+            $parsed = $parser->parse($rawText) ?? [];
         }
-
-        // AI parsing is a convenience, not a hard requirement — if OpenAI is
-        // unavailable or the account is out of quota, the candidate can still
-        // continue and fill in name/phone manually rather than being blocked.
-        $parsed = $parser->parse($rawText) ?? [];
 
         $request->session()->put('onboarding', [
             'cv_stored_path' => $storedPath,
