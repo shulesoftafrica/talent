@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Candidate;
 use App\Services\AI\JobMatchScorer;
+use App\Services\Academy\VacancySkillMatcher;
 use App\Services\Jobs\ActiveJobsRepository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,7 @@ class JobMatchController extends Controller
     public function __construct(
         private readonly JobMatchScorer $matcher,
         private readonly ActiveJobsRepository $activeJobs,
+        private readonly VacancySkillMatcher $skillMatcher,
     ) {
     }
 
@@ -85,12 +87,21 @@ class JobMatchController extends Controller
             ]);
         }
 
+        // Structured skill match — a distinct, explainable number from the
+        // AI holistic match_score above (location/salary/employment-type
+        // fit). Only verified Academy credentials count toward it (see
+        // VacancySkillMatcher's own docblock); null when the posting has no
+        // structured vacancy_skill_requirements rows yet, so the caller can
+        // hide the panel rather than show an empty/zero score.
+        $skillsMatch = $this->skillMatcher->match($candidate, $validated['source_schema'], $jobPostingId);
+
         return response()->json([
             'success' => true,
             'available' => true,
             'match_score' => $scored['match_score'],
             'reasons' => $scored['reasons'],
             'missing' => $scored['missing'],
+            'skills_match' => $skillsMatch,
         ]);
     }
 }
