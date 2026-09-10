@@ -71,12 +71,16 @@ class VerificationCheckoutController extends Controller
 
         // Line items — specific to this product, not something the generic
         // purchase() call handles (a future product like "storage upgrade"
-        // wouldn't need this table at all).
-        foreach ($items as $item) {
-            $order->items()->create([
-                'candidate_verification_item_id' => $item->id,
-                'price' => $item->price,
-            ]);
+        // wouldn't need this table at all). Only for a freshly created order:
+        // purchase() returns an existing pending order as-is on a duplicate
+        // submission, and its items were already created the first time.
+        if ($order->wasRecentlyCreated) {
+            foreach ($items as $item) {
+                $order->items()->create([
+                    'candidate_verification_item_id' => $item->id,
+                    'price' => $item->price,
+                ]);
+            }
         }
 
         if ($order->status === 'failed') {

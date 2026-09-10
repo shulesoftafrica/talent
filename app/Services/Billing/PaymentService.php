@@ -49,6 +49,31 @@ class PaymentService
         string $currency = 'USD',
         ?int $pricePlanId = null,
     ): VerificationOrder {
+        // A duplicate call for the exact same purchase (same candidate,
+        // product, amount and currency) reuses the existing pending order
+        // instead of creating a new one -- confirmed live: no guard here
+        // meant a double form submission (double-click, back+resubmit)
+        // created two separate billing-platform invoices for the same
+        // annual Talent Subscription. Matching on amount+currency (not just
+        // candidate+product) means a genuinely different purchase -- e.g. a
+        // different set of verification items with a different total -- still
+        // gets its own order; callers can check $order->wasRecentlyCreated
+        // to know whether this is a fresh order or a reused one, and skip
+        // re-inserting any per-product side-effect rows (like order line
+        // items) for a reused order.
+        $existing = $candidate->verificationOrders()
+            ->where('kind', $product)
+            ->where('status', 'pending')
+            ->where('total_amount', $amount)
+            ->where('currency', $currency)
+            ->whereNotNull('billing_invoice_id')
+            ->latest()
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
         $order = VerificationOrder::create([
             'candidate_id' => $candidate->id,
             'kind' => $product,
