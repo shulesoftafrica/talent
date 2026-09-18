@@ -34,15 +34,23 @@ class OtpService
      *                     email address to also send the code to (e.g. from the
      *                     candidate's CV or saved profile). Ignored when
      *                     $phoneOrEmail is itself an email — nothing to add.
+     * @return bool Whether the code was actually delivered on its primary
+     *              channel. The code row is created either way (so a code
+     *              that does arrive late, or via the secondary email copy on
+     *              the phone path, still verifies) -- callers use this only
+     *              to tell the requester whether to expect it, rather than
+     *              always claiming success even when delivery is known to
+     *              have failed (confirmed live: a Resend quota outage did
+     *              exactly that for hours).
      */
-    public function send(string $phoneOrEmail, string $purpose = 'login', ?string $candidateEmail = null): CandidateOtp
+    public function send(string $phoneOrEmail, string $purpose = 'login', ?string $candidateEmail = null): bool
     {
         $isEmail = str_contains($phoneOrEmail, '@');
         $channel = $isEmail ? 'email' : 'whatsapp';
 
         $code = (string) random_int(100000, 999999);
 
-        $otp = CandidateOtp::create([
+        CandidateOtp::create([
             'phone_or_email' => $phoneOrEmail,
             'code' => $code,
             'purpose' => $purpose,
@@ -50,12 +58,10 @@ class OtpService
             'expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES),
         ]);
 
-        $this->deliver($phoneOrEmail, $code, $isEmail, $candidateEmail);
-
-        return $otp;
+        return $this->deliver($phoneOrEmail, $code, $isEmail, $candidateEmail);
     }
 
-    public function resend(string $phoneOrEmail, string $purpose = 'login', ?string $candidateEmail = null): CandidateOtp
+    public function resend(string $phoneOrEmail, string $purpose = 'login', ?string $candidateEmail = null): bool
     {
         return $this->send($phoneOrEmail, $purpose, $candidateEmail);
     }
@@ -100,32 +106,34 @@ class OtpService
      * phone, WhatsApp (direct Meta Cloud API, with its own automatic
      * WaSender fallback — see MetaWhatsAppService) is primary, and a copy
      * also goes to the candidate's known email, if any — each channel
-     * fails independently without blocking the other.
+     * fails independently without blocking the other. The secondary email
+     * copy on the phone path is best-effort and doesn't affect the return
+     * value: WhatsApp is what the requester is told to expect.
      */
-    private function deliver(string $phoneOrEmail, string $code, bool $isEmail, ?string $candidateEmail): void
+    private function deliver(string $phoneOrEmail, string $code, bool $isEmail, ?string $candidateEmail): bool
     {
         $message = "Your ShuleSoft Talent Network verification code is: {$code}. It expires in " . self::CODE_TTL_MINUTES . ' minutes.';
 
         if ($isEmail) {
-            $this->sendEmail($phoneOrEmail, $message);
-
-            return;
+            return $this->sendEmail($phoneOrEmail, $message);
         }
 
-        $this->whatsApp->sendOtpTemplate($phoneOrEmail, $code);
+        $result = $this->whatsApp->sendOtpTemplate($phoneOrEmail, $code);
 
         if ($candidateEmail) {
             $this->sendEmail($candidateEmail, $message);
         }
+
+        return (bool) ($result['success'] ?? false);
     }
 
-    private function sendEmail(string $to, string $message): void
+    private function sendEmail(string $to, string $message): bool
     {
-        $this->notifications->send([
+        return $this->notifications->send([
             'channel' => 'email',
             'to' => $to,
             'subject' => 'Your ShuleSoft Talent Network verification code',
             'message' => $message,
-        ]);
+        ]) !== null;
     }
 }

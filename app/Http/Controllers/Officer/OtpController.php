@@ -48,7 +48,14 @@ class OtpController extends Controller
             ], 422);
         }
 
-        $this->otp->send($data['email'], self::PURPOSE);
+        $delivered = $this->otp->send($data['email'], self::PURPOSE);
+
+        if (!$delivered) {
+            return response()->json([
+                'success' => false,
+                'message' => "We couldn't send the verification code right now. Please try again in a few minutes.",
+            ], 422);
+        }
 
         return response()->json(['success' => true]);
     }
@@ -59,7 +66,14 @@ class OtpController extends Controller
             'email' => ['required', 'email', 'max:255'],
         ]);
 
-        $this->otp->resend($data['email'], self::PURPOSE);
+        $delivered = $this->otp->resend($data['email'], self::PURPOSE);
+
+        if (!$delivered) {
+            return response()->json([
+                'success' => false,
+                'message' => "We couldn't send the verification code right now. Please try again in a few minutes.",
+            ], 422);
+        }
 
         return response()->json(['success' => true]);
     }

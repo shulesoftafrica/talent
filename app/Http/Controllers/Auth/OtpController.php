@@ -44,7 +44,14 @@ class OtpController extends Controller
             ], 422);
         }
 
-        $this->otp->send($data['phone_or_email'], $data['purpose'], $this->resolveCandidateEmail($request, $data['phone_or_email'], $data['purpose']));
+        $delivered = $this->otp->send($data['phone_or_email'], $data['purpose'], $this->resolveCandidateEmail($request, $data['phone_or_email'], $data['purpose']));
+
+        if (!$delivered) {
+            return response()->json([
+                'success' => false,
+                'message' => "We couldn't send the verification code right now. Please try again in a few minutes.",
+            ], 422);
+        }
 
         return response()->json(['success' => true]);
     }
@@ -56,7 +63,14 @@ class OtpController extends Controller
             'purpose' => ['required', Rule::in(['login', 'signup'])],
         ]);
 
-        $this->otp->resend($data['phone_or_email'], $data['purpose'], $this->resolveCandidateEmail($request, $data['phone_or_email'], $data['purpose']));
+        $delivered = $this->otp->resend($data['phone_or_email'], $data['purpose'], $this->resolveCandidateEmail($request, $data['phone_or_email'], $data['purpose']));
+
+        if (!$delivered) {
+            return response()->json([
+                'success' => false,
+                'message' => "We couldn't send the verification code right now. Please try again in a few minutes.",
+            ], 422);
+        }
 
         return response()->json(['success' => true]);
     }

@@ -83,6 +83,29 @@ class UnifiedNotificationClient
             return null;
         }
 
+        // `success` here only means the API accepted the request -- confirmed
+        // live: it stays true even when the downstream provider (e.g. Resend)
+        // actually failed to deliver (a monthly sending quota being
+        // exhausted silently dropped OTP emails for hours, with every caller
+        // told the send succeeded). The real outcome is the nested delivery
+        // status; only a terminal 'failed' is treated as a failure here --
+        // 'pending'/'queued' are still legitimately in flight and should not
+        // be reported as broken.
+        $deliveryStatus = $decoded['data']['status'] ?? null;
+        $isFailed = ($deliveryStatus === 'failed') || !empty($decoded['data']['is_failed']);
+
+        if ($isFailed) {
+            Log::error('UnifiedNotificationClient: delivery failed', [
+                'status' => $deliveryStatus,
+                'provider' => $decoded['data']['provider'] ?? $decoded['provider'] ?? null,
+                'error_message' => $decoded['data']['error_message'] ?? null,
+                'channel' => $payload['channel'] ?? null,
+                'to' => $payload['to'] ?? null,
+            ]);
+
+            return null;
+        }
+
         return $decoded;
     }
 }
