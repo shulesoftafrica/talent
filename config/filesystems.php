@@ -47,6 +47,35 @@ return [
             'report' => false,
         ],
 
+        // Private bucket shared with the HR app (REQ-HRX-10). Never public;
+        // files are only ever opened through 10-minute temporary URLs issued
+        // by App\Services\Onboarding\OnboardingVault after an ownership check.
+        'hr_onboarding' => env('HR_ONBOARDING_DISK_DRIVER', 's3') === 'local'
+            ? [
+                'driver' => 'local',
+                'root' => env('HR_ONBOARDING_LOCAL_ROOT', storage_path('app/hr_onboarding')),
+                'serve' => true,
+                // Served disks must each have a unique URL; files under it
+                // are only reachable with a valid signature (private visibility).
+                'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/private-onboarding',
+                'visibility' => 'private',
+                'throw' => true,
+                'report' => false,
+            ]
+            : [
+                'driver' => 's3',
+                'key' => env('HR_ONBOARDING_DISK_KEY'),
+                'secret' => env('HR_ONBOARDING_DISK_SECRET'),
+                'region' => env('HR_ONBOARDING_DISK_REGION'),
+                'bucket' => env('HR_ONBOARDING_DISK_BUCKET'),
+                'endpoint' => env('HR_ONBOARDING_DISK_ENDPOINT'),
+                'use_path_style_endpoint' => env('HR_ONBOARDING_DISK_PATH_STYLE', false),
+                'visibility' => 'private',
+                'options' => ['ServerSideEncryption' => 'AES256'],
+                'throw' => true,
+                'report' => false,
+            ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
