@@ -44,6 +44,11 @@ class ApplicationStatusMapper
                 'stage_context' => 'You completed your interview — awaiting the school\'s decision.',
                 'next_action_label' => 'Wait for a Decision', 'next_action_sub' => 'Schools usually decide within two weeks of interviewing.',
             ],
+            'offer' => [
+                'label' => 'Offer', 'step_index' => 3, 'is_rejected' => false, 'urgency' => 'attention',
+                'stage_context' => 'The school has made you a formal job offer.',
+                'next_action_label' => 'Respond to Your Offer', 'next_action_sub' => 'Review the terms and accept or decline before the offer expires.',
+            ],
             'hired' => [
                 'label' => 'Hired', 'step_index' => 4, 'is_rejected' => false, 'urgency' => 'completed',
                 'stage_context' => 'Congratulations — you were hired for this role.',

@@ -35,6 +35,8 @@ use App\Http\Controllers\Officer\DashboardController as OfficerDashboardControll
 use App\Http\Controllers\Officer\FeedbackController as OfficerFeedbackController;
 use App\Http\Controllers\Officer\OtpController as OfficerOtpController;
 use App\Http\Controllers\Officer\QueueController as OfficerQueueController;
+use App\Http\Controllers\Candidate\OfferController;
+use App\Http\Controllers\Candidate\OnboardingChecklistController;
 use App\Http\Middleware\EnsureOfficerHasVerificationAccess;
 use App\Http\Middleware\SyncApplicationNotifications;
 use Illuminate\Support\Facades\Auth;
@@ -92,6 +94,11 @@ Route::post('/logout', function () {
     return redirect()->route('landing');
 })->middleware('auth:candidate')->name('logout');
 
+// The link in the offer email / WhatsApp / SMS. Guests are sent to log in first and
+// come back here (see OtpController::verify), then land on their offer.
+Route::middleware('auth:candidate')->get('/offers/claim/{module}/{token}', [OfferController::class, 'claim'])
+    ->where('token', '[A-Za-z0-9]{20,80}')->name('offers.claim');
+
 Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->prefix('app')->name('candidate.')->group(function () {
     Route::get('/jobs', [JobMatchesController::class, 'index'])->name('jobs');
     Route::get('/jobs/more', [JobMatchesController::class, 'more'])->name('jobs.more');
@@ -107,6 +114,14 @@ Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->pref
         Route::post('/{application}/withdraw', [ApplicationWithdrawalController::class, 'store'])->name('withdraw');
         Route::post('/{application}/withdrawal-details', [ApplicationWithdrawalController::class, 'storeOfferDetails'])->name('withdrawal-details');
         Route::post('/{application}/interview-response', [InterviewResponseController::class, 'store'])->name('interview-response');
+
+        // Formal offer and onboarding checklist (HR offer + self-onboarding)
+        Route::get('/{application}/offer', [OfferController::class, 'show'])->name('offer');
+        Route::post('/{application}/offer/accept', [OfferController::class, 'accept'])->name('offer.accept');
+        Route::post('/{application}/offer/decline', [OfferController::class, 'decline'])->name('offer.decline');
+        Route::get('/{application}/onboarding', [OnboardingChecklistController::class, 'show'])->name('onboarding');
+        Route::post('/{application}/onboarding/items/{item}', [OnboardingChecklistController::class, 'submit'])->whereNumber('item')->name('onboarding.submit');
+        Route::get('/{application}/onboarding/items/{item}/template', [OnboardingChecklistController::class, 'template'])->whereNumber('item')->name('onboarding.template');
     });
 
     Route::get('/notifications/{notification}/open', [NotificationsController::class, 'open'])->name('notifications.open');

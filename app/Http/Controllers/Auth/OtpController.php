@@ -148,7 +148,8 @@ class OtpController extends Controller
         $request->session()->regenerate();
         $request->session()->forget('onboarding');
 
-        $redirect = route('candidate.jobs');
+        // A guest who followed an offer link was sent to log in first; send them back to it.
+        $redirect = $request->session()->pull('url.intended', route('candidate.jobs'));
 
         // Resume "Apply" if the candidate arrived via a public Share Vacancy
         // link and had to sign up / log in first — see resources/views/

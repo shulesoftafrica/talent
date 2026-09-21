@@ -143,7 +143,25 @@ class ApplicationsController extends Controller
             // accepted — at Hired, the candidate is guided to contact the
             // school directly instead (see the Manage modal).
             'can_withdraw' => $meta['label'] !== 'Hired',
-        ];
+        ] + $this->offerLinks($app);
+    }
+
+    /**
+     * The button that takes the candidate to their formal offer, or to their onboarding
+     * checklist once they have accepted. Empty when the school has not made an offer.
+     *
+     * @return array{offer_url:?string, offer_button:?string}
+     */
+    private function offerLinks(Application $app): array
+    {
+        $origin = $app->originRow();
+        $status = $origin->offer_status ?? null;
+
+        return match ($status) {
+            'sent' => ['offer_url' => route('candidate.applications.offer', $app), 'offer_button' => 'View and answer your offer'],
+            'accepted' => ['offer_url' => route('candidate.applications.onboarding', $app), 'offer_button' => ($origin->onboarding_status ?? null) === 'active' ? 'View your onboarding' : 'Continue onboarding'],
+            default => ['offer_url' => null, 'offer_button' => null],
+        };
     }
 
     private function decorateWithdrawn(Application $app): array

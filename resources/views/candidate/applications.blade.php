@@ -150,6 +150,9 @@
                                 <div class="text-[13.5px] font-bold text-ttn-primary-dark">{{ $selected['next_action_label'] }}</div>
                                 <div class="text-[11.5px] text-ttn-primary-dark mt-0.5">{{ $selected['next_action_sub'] }}</div>
                             </div>
+                            @if (!empty($selected['offer_url']))
+                                <a href="{{ $selected['offer_url'] }}" class="rounded-lg bg-ttn-primary px-4 py-2.5 text-[13px] font-bold text-white">{{ $selected['offer_button'] }}</a>
+                            @endif
                         </div>
 
                         @if ($selected['awaiting_interview_response'])
