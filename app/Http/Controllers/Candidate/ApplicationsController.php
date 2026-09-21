@@ -118,7 +118,8 @@ class ApplicationsController extends Controller
             'school' => $this->schoolNames->resolve($app->source_schema, $job->hiring_manager_id ?? null, $job->created_by ?? null, $job->department ?? null),
             'location' => $job->location ?? null,
             'applied_on' => $app->applied_at->format('d M Y'),
-            'status_label' => $meta['label'],
+            'status_label' => $meta['display_label'],
+            'stage' => $meta['label'],
             'urgency' => $meta['urgency'],
             'stage_context' => $meta['stage_context'],
             'next_action_label' => $meta['next_action_label'],
@@ -142,7 +143,7 @@ class ApplicationsController extends Controller
             // Automatic withdrawal is only offered before an offer is
             // accepted — at Hired, the candidate is guided to contact the
             // school directly instead (see the Manage modal).
-            'can_withdraw' => $meta['label'] !== 'Hired',
+            'can_withdraw' => ! in_array($meta['label'], ['Hired', 'Offer'], true),
         ] + $this->offerLinks($app);
     }
 
@@ -238,9 +239,9 @@ class ApplicationsController extends Controller
             // Counts every application ever submitted, including withdrawn
             // ones — withdrawing doesn't erase that you applied.
             ['label' => 'Applications Submitted', 'value' => $totalSubmittedIncludingWithdrawn],
-            ['label' => 'Interviews', 'value' => $last90->where('status_label', 'Interview Invited')->count() + $last90->where('status_label', 'Interview Completed')->count()],
+            ['label' => 'Interviews', 'value' => $last90->where('stage', 'Interview Invited')->count() + $last90->where('status_label', 'Interview Completed')->count()],
             ['label' => 'Offers', 'value' => 0],
-            ['label' => 'Hired', 'value' => $last90->where('status_label', 'Hired')->count()],
+            ['label' => 'Hired', 'value' => $last90->where('stage', 'Hired')->count()],
         ];
     }
 }

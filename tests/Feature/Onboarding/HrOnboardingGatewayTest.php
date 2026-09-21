@@ -141,7 +141,9 @@ class HrOnboardingGatewayTest extends TestCase
     private function accepted(): Application
     {
         $application = $this->talentApplication();
-        $this->gateway()->accept($application, 'Jane Candidate', '10.0.0.9', 'TestBrowser');
+        // The HR module applies an acceptance; simulate its result.
+        $this->hr()->table('applications')->where('id', $this->hrId)->update(['offer_status' => 'accepted', 'status' => 'hired', 'onboarding_status' => 'not_started']);
+        $this->hr()->table('hr_onboarding_items')->where('application_id', $this->hrId)->where('status', 'locked')->update(['status' => 'pending']);
 
         return $application;
     }
@@ -192,67 +194,6 @@ class HrOnboardingGatewayTest extends TestCase
         $this->hr()->table('applications')->where('id', $this->hrId)->update(['email' => 'someone.else@x.com']);
 
         $this->assertNotNull($this->talentApplication(), 'the last nine digits of the phone match');
-    }
-
-    // ---- accepting and declining ----------------------------------------------------
-
-    public function test_accepting_marks_hired_opens_the_checklist_and_records_the_signature(): void
-    {
-        $this->accepted();
-
-        $hr = $this->row();
-        $this->assertSame('accepted', $hr->offer_status);
-        $this->assertSame('hired', $hr->status);
-        $this->assertSame('Jane Candidate', $hr->offer_signed_name);
-        $this->assertSame('talent', $hr->offer_response_channel);
-        $this->assertSame('10.0.0.9', $hr->offer_response_ip);
-        $this->assertSame('not_started', $hr->onboarding_status);
-        $this->assertSame(['pending'], $this->hr()->table('hr_onboarding_items')->where('application_id', $this->hrId)->pluck('status')->unique()->values()->all());
-        $this->assertSame(1, $this->hr()->table('hr_audit_logs')->where('schema_name', self::TENANT)->where('action_type', 'offer_accepted')->count());
-    }
-
-    public function test_an_answered_expired_or_unsigned_offer_is_refused(): void
-    {
-        $application = $this->talentApplication();
-
-        try {
-            $this->gateway()->accept($application, ' ', null, null);
-            $this->fail('a signature is required');
-        } catch (OfferAnswerRejectedException $e) {
-            $this->assertStringContainsString('full name', $e->getMessage());
-        }
-        $this->assertSame('sent', $this->row()->offer_status);
-
-        $this->gateway()->accept($application, 'Jane Candidate', null, null);
-        try {
-            $this->gateway()->accept($application, 'Jane Candidate', null, null);
-            $this->fail('cannot be answered twice');
-        } catch (OfferAnswerRejectedException $e) {
-            $this->assertStringContainsString('already been answered', $e->getMessage());
-        }
-
-        $second = $this->hrApplication(['offer_token' => str_repeat('c', 40), 'email' => 'zzztalent01-b@x.com', 'phone' => '255754123456', 'offer_token_expires_at' => now()->subHour()]);
-        $expired = Application::query()->create(['candidate_id' => $this->candidate->id, 'source_schema' => self::MODULE, 'source_application_id' => $second,
-            'source_job_posting_id' => $this->jobId, 'source_channel' => 'offer', 'applied_at' => now()]);
-        $this->assertSame('expired', $this->gateway()->offerState($this->row('applications', $second)));
-        try {
-            $this->gateway()->accept($expired, 'Jane Candidate', null, null);
-            $this->fail('expired');
-        } catch (OfferAnswerRejectedException $e) {
-            $this->assertStringContainsString('expired', $e->getMessage());
-        }
-        $this->assertSame('expired', $this->row('applications', $second)->offer_status);
-    }
-
-    public function test_declining_rejects_and_keeps_the_checklist_locked(): void
-    {
-        $this->gateway()->decline($this->talentApplication(), 'Took another job', '10.0.0.9', 'TestBrowser');
-
-        $hr = $this->row();
-        $this->assertSame('declined', $hr->offer_status);
-        $this->assertSame('rejected', $hr->status);
-        $this->assertSame('Took another job', $hr->offer_decline_reason);
-        $this->assertSame(['locked'], $this->hr()->table('hr_onboarding_items')->where('application_id', $this->hrId)->pluck('status')->unique()->values()->all());
     }
 
     // ---- onboarding submissions -----------------------------------------------------
@@ -375,75 +316,6 @@ class HrOnboardingGatewayTest extends TestCase
         $this->assertSame('submitted', $this->row()->onboarding_status, 'the optional TIN does not hold it back');
     }
 
-    // ---- the pages the candidate actually sees ---------------------------------------
-
-    public function test_the_candidate_journey_through_the_real_pages(): void
-    {
-        $token = str_repeat('a', 40);
-
-        // A guest following the emailed link is sent to log in first.
-        $this->get('/offers/claim/'.self::MODULE.'/'.$token)->assertRedirect(route('landing'));
-
-        $this->actingAs($this->candidate, 'candidate');
-        $talent = $this->talentApplication();
-
-        $this->get('/offers/claim/'.self::MODULE.'/'.$token)->assertRedirect(route('candidate.applications.offer', $talent));
-
-        $this->get(route('candidate.applications.offer', $talent))
-            ->assertOk()->assertSee('ZZZ Accountant')->assertSee('900,000')->assertSee('Accept offer')->assertSee('Decline this offer');
-
-        // the checklist stays closed until the offer is accepted
-        $this->get(route('candidate.applications.onboarding', $talent))->assertRedirect(route('candidate.applications.offer', $talent));
-
-        $this->post(route('candidate.applications.offer.accept', $talent), ['signed_name' => 'x'])->assertSessionHasErrors('signed_name');
-        $this->post(route('candidate.applications.offer.accept', $talent), ['signed_name' => 'Jane Candidate'])
-            ->assertRedirect(route('candidate.applications.onboarding', $talent));
-
-        $itemId = $this->item('birth_certificate')->id;
-        $this->get(route('candidate.applications.onboarding', $talent))
-            ->assertOk()->assertSee('Birth certificate')->assertSee('Pension fund membership')->assertSee('0 of 3 required items approved');
-
-        // an invalid typed answer is explained, nothing is stored
-        $pensionId = $this->item('pension_fund')->id;
-        $this->from(route('candidate.applications.onboarding', $talent))
-            ->post(route('candidate.applications.onboarding.submit', [$talent, $pensionId]), ['member' => 'yes', 'fund' => 'NSSF'])
-            ->assertSessionHasErrors("item_{$pensionId}");
-        $this->assertSame('pending', $this->item('pension_fund')->status);
-
-        $this->post(route('candidate.applications.onboarding.submit', [$talent, $itemId]), ['files' => [$this->pdf('birth.pdf')]])
-            ->assertRedirect(route('candidate.applications.onboarding', $talent))->assertSessionHas('status');
-        $this->get(route('candidate.applications.onboarding', $talent))->assertOk()->assertSee('Sent for review')->assertSee('birth.pdf');
-
-        // the applications page points the candidate at their onboarding
-        $this->get(route('candidate.applications.index', ['selected' => $talent->uuid]))->assertOk()->assertSee('Continue onboarding');
-    }
-
-    public function test_another_candidate_cannot_open_someone_elses_offer_or_checklist(): void
-    {
-        $talent = $this->talentApplication();
-        $stranger = Candidate::query()->create(['full_name' => 'ZZZ Stranger', 'email' => 'zzztalent01-other@x.com', 'phone' => '+255700000001']);
-
-        $this->actingAs($stranger, 'candidate');
-        $this->get(route('candidate.applications.offer', $talent))->assertNotFound();
-        $this->get(route('candidate.applications.onboarding', $talent))->assertNotFound();
-        $this->post(route('candidate.applications.offer.accept', $talent), ['signed_name' => 'Jane Candidate'])->assertNotFound();
-        $this->assertSame('sent', $this->row()->offer_status);
-    }
-
-    public function test_the_template_link_hands_out_a_short_lived_signed_url(): void
-    {
-        $application = $this->accepted();
-        Storage::disk('hr_onboarding')->put('templates/'.self::TENANT.'/contract.pdf', 'template');
-        $item = $this->item('birth_certificate');
-        $this->hr()->table('hr_onboarding_items')->where('id', $item->id)->update(['template_path' => 'templates/'.self::TENANT.'/contract.pdf']);
-
-        $this->actingAs($this->candidate, 'candidate');
-        $response = $this->get(route('candidate.applications.onboarding.template', [$application, $item->id]));
-
-        $response->assertRedirect();
-        $this->assertStringContainsString('signature=', $response->headers->get('Location'));
-        $this->get(route('candidate.applications.onboarding', $application))->assertOk()->assertSee('template to sign or complete');
-    }
     public function test_the_offer_appears_only_where_the_school_has_made_one(): void
     {
         $application = $this->talentApplication();

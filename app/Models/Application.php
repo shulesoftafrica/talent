@@ -116,6 +116,6 @@ class Application extends Model
 
     public function statusMeta(): array
     {
-        return ApplicationStatusMapper::resolve($this->status());
+        return ApplicationStatusMapper::resolve($this->status(), $this->originRow());
     }
 }

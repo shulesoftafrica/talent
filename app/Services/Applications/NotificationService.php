@@ -15,7 +15,7 @@ use App\Models\Candidate;
 class NotificationService
 {
     /** Statuses worth interrupting the candidate for. */
-    private const NOTIFIABLE_STATUSES = ['interview_scheduled', 'hired', 'rejected'];
+    private const NOTIFIABLE_STATUSES = ['interview_scheduled', 'offer', 'offer_expired', 'hired', 'rejected'];
 
     public function syncForCandidate(Candidate $candidate): void
     {
@@ -38,12 +38,15 @@ class NotificationService
             $meta = $application->statusMeta();
             $job = $application->jobPosting();
 
+            $isOffer = $currentStatus === 'offer';
             $application->notifications()->create([
                 'candidate_id' => $application->candidate_id,
                 'type' => 'application_status',
-                'title' => "{$meta['label']} — {$job->title}",
+                'title' => $isOffer ? "You have received a job offer — {$job->title}" : "{$meta['display_label']} — {$job->title}",
                 'body' => $meta['stage_context'],
-                'action_url' => route('candidate.applications.index', ['selected' => $application->id]),
+                'action_url' => $isOffer
+                    ? route('candidate.applications.offer', $application)
+                    : route('candidate.applications.index', ['selected' => $application->id]),
             ]);
         }
 

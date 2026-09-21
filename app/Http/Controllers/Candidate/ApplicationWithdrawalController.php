@@ -34,7 +34,7 @@ class ApplicationWithdrawalController extends Controller
             return back()->with('status', 'This application has already been withdrawn.');
         }
 
-        if ($application->statusMeta()['label'] === 'Hired') {
+        if (in_array($application->statusMeta()['label'], ['Hired', 'Offer'], true)) {
             return back()->withErrors([
                 'withdraw' => 'This application has already moved to Hired. Automatic withdrawal isn\'t available at this stage — please contact the school directly to formally decline the offer.',
             ]);

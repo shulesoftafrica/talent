@@ -32,7 +32,12 @@
                 <div class="flex justify-between gap-4 py-2.5"><dt class="text-ttn-text2">{{ $label }}</dt><dd class="font-bold text-right">{{ $value }}</dd></div>
             @endforeach
         </dl>
-        <p class="mt-4 text-[12px] text-ttn-text2">The full offer letter was sent to you by email. Accepting does not activate your staff account yet: after you accept, you upload your onboarding documents and the school activates your account once they are approved.</p>
+
+        @if ($hasLetter)
+            <a href="{{ route('candidate.applications.offer.letter', $application) }}" target="_blank" rel="noopener"
+               class="mt-4 inline-block rounded-lg border border-ttn-border px-4 py-2 text-[13px] font-bold">📄 View offer letter</a>
+        @endif
+        <p class="mt-4 text-[12px] text-ttn-text2">Accepting activates your staff account and opens your onboarding checklist here on Talent.</p>
     </div>
 
     @if ($state === 'open')
@@ -42,29 +47,43 @@
                 <label class="block text-[13px] font-bold mb-1.5" for="signed_name">Type your full name to accept and sign</label>
                 <input id="signed_name" name="signed_name" type="text" required minlength="3" maxlength="150" value="{{ old('signed_name') }}"
                        class="w-full rounded-lg border border-ttn-border bg-ttn-card px-3 py-2.5 text-[13.5px] mb-2" autocomplete="name">
+                <label class="flex items-start gap-2 text-[12.5px] mb-2"><input type="checkbox" name="confirmed" value="1" required class="mt-0.5"> I have read and accept the terms of this offer</label>
                 @error('signed_name')<div class="text-[12px] font-semibold text-ttn-red mb-2">{{ $message }}</div>@enderror
+                @error('confirmed')<div class="text-[12px] font-semibold text-ttn-red mb-2">{{ $message }}</div>@enderror
                 <button type="submit" class="rounded-lg bg-ttn-primary px-5 py-2.5 text-[13.5px] font-bold text-white cursor-pointer">Accept offer</button>
             </form>
         </div>
 
-        <div x-data="{ open: false }" class="rounded-2xl border border-ttn-border bg-ttn-card p-5 sm:p-6">
+        <div x-data="{ open: {{ $errors->has('reason') || $errors->has('reason_detail') ? 'true' : 'false' }} }" class="rounded-2xl border border-ttn-border bg-ttn-card p-5 sm:p-6">
             <button type="button" @click="open = !open" class="text-[13px] font-bold text-ttn-text2 cursor-pointer">Decline this offer</button>
             <form x-show="open" x-cloak method="POST" action="{{ route('candidate.applications.offer.decline', $application) }}" class="mt-3"
                   onsubmit="return confirm('Are you sure you want to decline this offer?');">
                 @csrf
-                <textarea name="reason" rows="2" maxlength="500" placeholder="Reason (optional)" class="w-full rounded-lg border border-ttn-border bg-ttn-card px-3 py-2.5 text-[13.5px] mb-2"></textarea>
+                <select name="reason" required class="w-full rounded-lg border border-ttn-border bg-ttn-card px-3 py-2.5 text-[13.5px] mb-2">
+                    <option value="">Reason for declining</option>
+                    @foreach ($reasons as $code => $label)<option value="{{ $code }}" @selected(old('reason') === $code)>{{ $label }}</option>@endforeach
+                </select>
+                <textarea name="reason_detail" rows="2" maxlength="400" placeholder="Tell us more (required for Other)" class="w-full rounded-lg border border-ttn-border bg-ttn-card px-3 py-2.5 text-[13.5px] mb-2">{{ old('reason_detail') }}</textarea>
                 @error('reason')<div class="text-[12px] font-semibold text-ttn-red mb-2">{{ $message }}</div>@enderror
+                @error('reason_detail')<div class="text-[12px] font-semibold text-ttn-red mb-2">{{ $message }}</div>@enderror
                 <button type="submit" class="rounded-lg border border-ttn-border px-4 py-2 text-[13px] font-bold cursor-pointer">Decline offer</button>
             </form>
         </div>
     @else
         <div class="rounded-2xl border border-ttn-border bg-ttn-card p-5 sm:p-6 text-[13.5px]">
-            @if ($hr->offer_status === 'accepted')
-                <div class="font-bold text-ttn-primary-dark mb-2">You accepted this offer{{ $hr->offer_responded_at ? ' on '.\Illuminate\Support\Carbon::parse($hr->offer_responded_at)->format('j F Y') : '' }}.</div>
-                <a href="{{ route('candidate.applications.onboarding', $application) }}" class="inline-block rounded-lg bg-ttn-primary px-5 py-2.5 text-[13.5px] font-bold text-white">Continue to onboarding</a>
-            @elseif ($hr->offer_status === 'declined')
+            @if ($state === 'awaiting_hr')
+                @if ($response && $response->action === 'accept')
+                    <div class="font-bold text-ttn-primary-dark mb-1">Accepted — your onboarding checklist will open in a moment.</div>
+                    <p class="text-[12.5px] text-ttn-text2">The school is confirming your answer. Refresh this page in a minute.</p>
+                @else
+                    <div class="font-bold mb-1">Declined — the school is recording your answer.</div>
+                @endif
+            @elseif ($state === 'accepted')
+                <div class="font-bold text-ttn-primary-dark mb-2">You accepted this offer{{ $hr->offer_responded_at ? ' on '.\Illuminate\Support\Carbon::parse($hr->offer_responded_at)->format('j F Y') : '' }}{{ $hr->offer_response_channel === 'email' ? ' by email' : '' }}.</div>
+                <a href="{{ route('candidate.applications.onboarding', $application) }}" class="inline-block rounded-lg bg-ttn-primary px-5 py-2.5 text-[13.5px] font-bold text-white">Complete your onboarding</a>
+            @elseif ($state === 'declined')
                 <div class="font-bold">You declined this offer.</div>
-            @elseif ($hr->offer_status === 'withdrawn')
+            @elseif ($state === 'withdrawn')
                 <div class="font-bold">The school has withdrawn this offer. Please contact their HR department for details.</div>
             @else
                 <div class="font-bold">This offer has expired. Please contact the school if you are still interested.</div>

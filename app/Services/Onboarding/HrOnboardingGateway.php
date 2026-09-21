@@ -62,7 +62,7 @@ class HrOnboardingGateway
      * candidate must be the person the offer was made to: their email or the
      * last nine digits of their phone must match the HR application.
      */
-    public function claim(Candidate $candidate, string $module, string $token): ?Application
+    public function claim(Candidate $candidate, string $module, string $token, string $channel = 'offer_claim'): ?Application
     {
         $hr = $this->db($module)->table('applications')->where('offer_token', $token)->first();
         if (! $hr || ! $this->isSamePerson($candidate, $hr)) {
@@ -74,7 +74,7 @@ class HrOnboardingGateway
             $application->fill([
                 'candidate_id' => $candidate->id,
                 'source_job_posting_id' => $hr->job_posting_id,
-                'source_channel' => 'offer',
+                'source_channel' => $channel,
                 'last_seen_status' => $hr->status,
                 'applied_at' => $hr->created_at ?? now(),
             ])->save();
@@ -96,93 +96,6 @@ class HrOnboardingGateway
         $phone = $digits($hr->phone);
 
         return $phone !== '' && strlen($phone) === 9 && $digits($candidate->phone) === $phone;
-    }
-
-    // ---- the offer -----------------------------------------------------------
-
-    /** open | answered | expired for an application that has an offer. */
-    public function offerState(object $hr): string
-    {
-        if ($hr->offer_status !== 'sent') {
-            return 'answered';
-        }
-
-        return ($hr->offer_token_expires_at && strtotime($hr->offer_token_expires_at) < time()) ? 'expired' : 'open';
-    }
-
-    /**
-     * @throws OfferAnswerRejectedException
-     */
-    public function accept(Application $application, string $signedName, ?string $ip, ?string $userAgent): void
-    {
-        $signedName = trim($signedName);
-        if (mb_strlen($signedName) < 3) {
-            throw new OfferAnswerRejectedException('Please type your full name to accept the offer.');
-        }
-
-        $module = $application->source_schema;
-        $this->expireIfDue($application);
-        $this->db($module)->transaction(function () use ($application, $module, $signedName, $ip, $userAgent) {
-            $hr = $this->lockOpenOffer($application);
-
-            $this->db($module)->table('applications')->where('id', $hr->id)->update([
-                'offer_status' => 'accepted', 'offer_response' => 'accepted', 'offer_responded_at' => now(),
-                'offer_signed_name' => mb_substr($signedName, 0, 150), 'offer_response_channel' => 'talent',
-                'offer_response_ip' => $ip, 'offer_response_user_agent' => $userAgent ? mb_substr($userAgent, 0, 300) : null,
-                'status' => 'hired', 'notes' => 'Offer accepted by the candidate', 'updated_at' => now(),
-            ]);
-
-            $this->db($module)->table('hr_onboarding_items')->where('application_id', $hr->id)->where('status', 'locked')->update(['status' => 'pending', 'updated_at' => now()]);
-            $this->db($module)->table('applications')->where('id', $hr->id)
-                ->where(fn ($q) => $q->whereNull('onboarding_status')->orWhere('onboarding_status', 'locked'))->update(['onboarding_status' => 'not_started']);
-
-            $this->audit($module, $hr, 'offer_accepted', "Offer accepted by {$signedName} via Talent", $ip, $userAgent, ['signed_name' => $signedName, 'channel' => 'talent']);
-        });
-    }
-
-    /** @throws OfferAnswerRejectedException */
-    public function decline(Application $application, ?string $reason, ?string $ip, ?string $userAgent): void
-    {
-        $module = $application->source_schema;
-        $reason = $reason !== null ? mb_substr(trim($reason), 0, 500) : null;
-        $this->expireIfDue($application);
-
-        $this->db($module)->transaction(function () use ($application, $module, $reason, $ip, $userAgent) {
-            $hr = $this->lockOpenOffer($application);
-
-            $this->db($module)->table('applications')->where('id', $hr->id)->update([
-                'offer_status' => 'declined', 'offer_response' => 'rejected', 'offer_responded_at' => now(),
-                'offer_decline_reason' => $reason ?: null, 'offer_response_channel' => 'talent',
-                'offer_response_ip' => $ip, 'offer_response_user_agent' => $userAgent ? mb_substr($userAgent, 0, 300) : null,
-                'status' => 'rejected', 'notes' => 'Offer declined by the candidate', 'updated_at' => now(),
-            ]);
-
-            $this->audit($module, $hr, 'offer_declined', 'Offer declined by the candidate'.($reason ? ": {$reason}" : ''), $ip, $userAgent, ['reason' => $reason, 'channel' => 'talent']);
-        });
-    }
-
-    /** Records an overdue offer as expired -- outside the answer's transaction, so the record survives the refusal. */
-    private function expireIfDue(Application $application): void
-    {
-        $hr = $this->hrApplication($application);
-        if ($hr && $this->offerState($hr) === 'expired') {
-            $this->db($application->source_schema)->table('applications')->where('id', $hr->id)->where('offer_status', 'sent')->update(['offer_status' => 'expired', 'updated_at' => now()]);
-            throw new OfferAnswerRejectedException('This offer has expired. Please contact the school.');
-        }
-    }
-
-    private function lockOpenOffer(Application $application): object
-    {
-        $hr = $this->db($application->source_schema)->table('applications')->where('id', $application->source_application_id)->lockForUpdate()->first();
-
-        if (! $hr || $hr->offer_status !== 'sent') {
-            throw new OfferAnswerRejectedException('This offer has already been answered or is no longer open.');
-        }
-        if ($this->offerState($hr) === 'expired') {
-            throw new OfferAnswerRejectedException('This offer has expired. Please contact the school.');
-        }
-
-        return $hr;
     }
 
     // ---- the checklist -------------------------------------------------------

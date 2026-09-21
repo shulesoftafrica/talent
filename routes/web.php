@@ -35,6 +35,7 @@ use App\Http\Controllers\Officer\DashboardController as OfficerDashboardControll
 use App\Http\Controllers\Officer\FeedbackController as OfficerFeedbackController;
 use App\Http\Controllers\Officer\OtpController as OfficerOtpController;
 use App\Http\Controllers\Officer\QueueController as OfficerQueueController;
+use App\Http\Controllers\Candidate\OfferClaimController;
 use App\Http\Controllers\Candidate\OfferController;
 use App\Http\Controllers\Candidate\OnboardingChecklistController;
 use App\Http\Middleware\EnsureOfficerHasVerificationAccess;
@@ -94,10 +95,14 @@ Route::post('/logout', function () {
     return redirect()->route('landing');
 })->middleware('auth:candidate')->name('logout');
 
-// The link in the offer email / WhatsApp / SMS. Guests are sent to log in first and
-// come back here (see OtpController::verify), then land on their offer.
-Route::middleware('auth:candidate')->get('/offers/claim/{module}/{token}', [OfferController::class, 'claim'])
-    ->where('token', '[A-Za-z0-9]{20,80}')->name('offers.claim');
+// The link in the offer email / WhatsApp / SMS. Public: a candidate who applied through the
+// school's careers page proves they are the applicant with a code sent to the phone on the
+// application, then their Talent account is found or created and the offer opens.
+Route::prefix('offers/claim/{module}/{token}')->middleware('throttle:10,1')->where(['module' => 'shulesoft|safaribook', 'token' => '[A-Za-z0-9]{20,80}'])->group(function () {
+    Route::get('/', [OfferClaimController::class, 'show'])->name('offers.claim');
+    Route::post('/send', [OfferClaimController::class, 'send'])->name('offers.claim.send');
+    Route::post('/verify', [OfferClaimController::class, 'verify'])->name('offers.claim.verify');
+});
 
 Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->prefix('app')->name('candidate.')->group(function () {
     Route::get('/jobs', [JobMatchesController::class, 'index'])->name('jobs');
@@ -117,6 +122,7 @@ Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->pref
 
         // Formal offer and onboarding checklist (HR offer + self-onboarding)
         Route::get('/{application}/offer', [OfferController::class, 'show'])->name('offer');
+        Route::get('/{application}/offer/letter', [OfferController::class, 'letter'])->name('offer.letter');
         Route::post('/{application}/offer/accept', [OfferController::class, 'accept'])->name('offer.accept');
         Route::post('/{application}/offer/decline', [OfferController::class, 'decline'])->name('offer.decline');
         Route::get('/{application}/onboarding', [OnboardingChecklistController::class, 'show'])->name('onboarding');
