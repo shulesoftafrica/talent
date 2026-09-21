@@ -141,6 +141,33 @@ class OfferService
         }
     }
 
+    /**
+     * What this candidate has waiting from a school: an offer to answer, or an onboarding checklist to finish.
+     * Shown as a banner on every candidate page.
+     *
+     * @return array<int, array{url:string, title:string, text:string}>
+     */
+    public function pendingFor(Candidate $candidate): array
+    {
+        $pending = [];
+        foreach (Application::query()->where('candidate_id', $candidate->id)->whereNull('withdrawn_at')->get() as $application) {
+            $hr = $this->origin->hrApplication($application);
+            $job = $hr ? $application->jobPosting() : null;
+            if (! $hr || empty($hr->offer_status)) {
+                continue;
+            }
+
+            $title = $job->title ?? 'your new job';
+            if ($hr->offer_status === 'sent' && ! $this->isPastExpiry($hr)) {
+                $pending[] = ['url' => route('candidate.applications.offer', $application), 'title' => 'You have a job offer', 'text' => "{$title} — review and reply".($hr->offer_token_expires_at ? ' by '.date('j M', strtotime($hr->offer_token_expires_at)) : '')];
+            } elseif ($hr->offer_status === 'accepted' && ! in_array($hr->onboarding_status ?? null, ['completed', 'submitted'], true)) {
+                $pending[] = ['url' => route('candidate.onboarding', $application), 'title' => 'Complete your onboarding', 'text' => "{$title} — the school needs your documents"];
+            }
+        }
+
+        return $pending;
+    }
+
     /** A 10-minute link to the offer letter PDF; the caller must have checked ownership. */
     public function letterUrl(object $hr, OnboardingVault $vault): ?string
     {

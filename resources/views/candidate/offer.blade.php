@@ -80,7 +80,7 @@
                 @endif
             @elseif ($state === 'accepted')
                 <div class="font-bold text-ttn-primary-dark mb-2">You accepted this offer{{ $hr->offer_responded_at ? ' on '.\Illuminate\Support\Carbon::parse($hr->offer_responded_at)->format('j F Y') : '' }}{{ $hr->offer_response_channel === 'email' ? ' by email' : '' }}.</div>
-                <a href="{{ route('candidate.applications.onboarding', $application) }}" class="inline-block rounded-lg bg-ttn-primary px-5 py-2.5 text-[13.5px] font-bold text-white">Complete your onboarding</a>
+                <a href="{{ route('candidate.onboarding', $application) }}" class="inline-block rounded-lg bg-ttn-primary px-5 py-2.5 text-[13.5px] font-bold text-white">Complete your onboarding</a>
             @elseif ($state === 'declined')
                 <div class="font-bold">You declined this offer.</div>
             @elseif ($state === 'withdrawn')

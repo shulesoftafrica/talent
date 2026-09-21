@@ -160,7 +160,7 @@ class ApplicationsController extends Controller
 
         return match ($status) {
             'sent' => ['offer_url' => route('candidate.applications.offer', $app), 'offer_button' => 'View and answer your offer'],
-            'accepted' => ['offer_url' => route('candidate.applications.onboarding', $app), 'offer_button' => ($origin->onboarding_status ?? null) === 'active' ? 'View your onboarding' : 'Continue onboarding'],
+            'accepted' => ['offer_url' => route('candidate.onboarding', $app), 'offer_button' => ($origin->onboarding_status ?? null) === 'active' ? 'View your onboarding' : 'Continue onboarding'],
             default => ['offer_url' => null, 'offer_button' => null],
         };
     }

@@ -3,6 +3,13 @@
     $unreadNotifications = $candidate->notifications()->whereNull('read_at')->latest()->take(6)->get();
 @endphp
 
+@foreach (app(\App\Services\Onboarding\OfferService::class)->pendingFor($candidate) as $waiting)
+    <a href="{{ $waiting['url'] }}" class="block rounded-2xl border border-ttn-primary bg-ttn-primary-light p-4">
+        <div class="text-[11px] font-bold uppercase tracking-wide text-ttn-primary-dark mb-0.5">{{ $waiting['title'] }}</div>
+        <div class="text-[13px] font-bold text-ttn-primary-dark">{{ $waiting['text'] }}</div>
+    </a>
+@endforeach
+
 <div x-data="{ notifOpen: false }" class="relative flex justify-end">
     <button @click="notifOpen = !notifOpen" class="relative flex h-8 w-8 items-center justify-center rounded-full border border-ttn-border bg-ttn-card cursor-pointer">
         🔔

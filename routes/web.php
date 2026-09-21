@@ -125,9 +125,19 @@ Route::middleware(['auth:candidate', SyncApplicationNotifications::class])->pref
         Route::get('/{application}/offer/letter', [OfferController::class, 'letter'])->name('offer.letter');
         Route::post('/{application}/offer/accept', [OfferController::class, 'accept'])->name('offer.accept');
         Route::post('/{application}/offer/decline', [OfferController::class, 'decline'])->name('offer.decline');
-        Route::get('/{application}/onboarding', [OnboardingChecklistController::class, 'show'])->name('onboarding');
-        Route::post('/{application}/onboarding/items/{item}', [OnboardingChecklistController::class, 'submit'])->whereNumber('item')->name('onboarding.submit');
-        Route::get('/{application}/onboarding/items/{item}/template', [OnboardingChecklistController::class, 'template'])->whereNumber('item')->name('onboarding.template');
+    });
+
+    // The new hire's onboarding checklist (REQ-HRX-07). Uploads are throttled.
+    Route::prefix('onboarding/{application}')->name('onboarding')->group(function () {
+        Route::get('/', [OnboardingChecklistController::class, 'show']);
+        Route::post('/submit', [OnboardingChecklistController::class, 'submitAll'])->middleware('throttle:10,1')->name('.submit-all');
+        Route::prefix('items/{item}')->whereNumber('item')->group(function () {
+            Route::post('/save', [OnboardingChecklistController::class, 'save'])->middleware('throttle:30,1')->name('.save');
+            Route::post('/files/{file}/remove', [OnboardingChecklistController::class, 'removeFile'])->name('.remove-file');
+            Route::post('/use-verified-id', [OnboardingChecklistController::class, 'useVerifiedId'])->middleware('throttle:10,1')->name('.verified-id');
+            Route::post('/use-profile-photo', [OnboardingChecklistController::class, 'useProfilePhoto'])->middleware('throttle:10,1')->name('.profile-photo');
+            Route::get('/template', [OnboardingChecklistController::class, 'template'])->name('.template');
+        });
     });
 
     Route::get('/notifications/{notification}/open', [NotificationsController::class, 'open'])->name('notifications.open');

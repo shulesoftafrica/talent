@@ -5,20 +5,16 @@ namespace App\Services\Onboarding;
 use App\Models\Application;
 use App\Models\Candidate;
 use Illuminate\Database\ConnectionInterface;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The candidate's side of the HR offer and onboarding flow (REQ-HRX-03/04).
- *
- * The HR application, its offer terms, its onboarding checklist and the
- * candidate's submissions all live in the school's own schema
- * (shulesoft / safaribook), which Talent already reads for every application.
- * This class is the only place Talent touches those HR tables, and it applies
- * the same rules HR applies on its side: an offer can be answered only while
- * it is open, accepting opens the checklist but never the staff account, and
- * items HR has approved can no longer be changed.
+ * Talent's READ-ONLY window onto the HR module's data for one application
+ * (REQ-HRX-04/07): the origin application row, and the onboarding checklist the
+ * employer defined. The HR module is the system of record for both; Talent never
+ * writes them. The only HR-side write here is the one-off link that lets a
+ * careers-page applicant's origin row point back at its Talent application
+ * (`talent_application_id`), which the HR module already expects Talent to set.
  */
 class HrOnboardingGateway
 {
@@ -46,7 +42,7 @@ class HrOnboardingGateway
         return $this->db($application->source_schema)->table('applications')->find($application->source_application_id);
     }
 
-    /** True when the offer/onboarding flow applies to this application. */
+    /** True when the school has made an offer on this application. */
     public function hasOffer(Application $application): bool
     {
         $hr = $this->hrApplication($application);
@@ -57,10 +53,10 @@ class HrOnboardingGateway
     // ---- linking a careers-page applicant to a Talent account ------------------
 
     /**
-     * Finds the Talent application for an offer link, creating the link when
-     * this is a careers-page applicant seeing Talent for the first time. The
-     * candidate must be the person the offer was made to: their email or the
-     * last nine digits of their phone must match the HR application.
+     * Finds the Talent application for an offer link, creating it when this is a
+     * careers-page applicant seeing Talent for the first time. The candidate must
+     * be the person the offer was made to: their email or the last nine digits of
+     * their phone must match the HR application.
      */
     public function claim(Candidate $candidate, string $module, string $token, string $channel = 'offer_claim'): ?Application
     {
@@ -100,149 +96,31 @@ class HrOnboardingGateway
 
     // ---- the checklist -------------------------------------------------------
 
-    /** @return Collection<int, object> items with `files` (current uploads) and `values` (decrypted answers) */
-    public function items(Application $application): Collection
+    /**
+     * The employer's checklist for this application, in order.
+     *
+     * @return Collection<int, object> rows with `accepts` decoded and `required` as a bool
+     */
+    public function checklist(Application $application): Collection
     {
         $hr = $this->hrApplication($application);
         if (! $hr) {
             return collect();
         }
-        $db = $this->db($application->source_schema);
 
-        $submissions = $db->table('hr_onboarding_submissions')->where('application_id', $hr->id)->whereNull('superseded_at')->orderBy('id')->get()->groupBy('item_id');
+        return $this->db($application->source_schema)->table('hr_onboarding_items')
+            ->where('application_id', $hr->id)->orderBy('sort_order')->orderBy('id')->get()
+            ->map(function ($item) {
+                $item->accepts = $item->accepts ? (array) json_decode($item->accepts, true) : [];
+                $item->required = in_array($item->required, [true, 1, '1', 't', 'true'], true);
 
-        return $db->table('hr_onboarding_items')->where('application_id', $hr->id)->orderBy('sort_order')->orderBy('id')->get()->map(function ($item) use ($submissions) {
-            $rows = $submissions->get($item->id, collect());
-            $item->accepts = $item->accepts ? (array) json_decode($item->accepts, true) : [];
-            $item->required = in_array($item->required, [true, 1, '1', 't', 'true'], true);
-            $item->files = $rows->filter(fn ($r) => $r->file_path)->values();
-            $item->values = $rows->reduce(function (array $carry, $r) {
-                if (! $r->value_encrypted) {
-                    return $carry;
-                }
-                try {
-                    return array_merge($carry, SharedEncrypter::fromConfig()->decryptJson($r->value_encrypted));
-                } catch (\Throwable $e) {
-                    return $carry;
-                }
-            }, []);
-
-            return $item;
-        });
-    }
-
-    public function item(Application $application, int $itemId): ?object
-    {
-        return $this->items($application)->firstWhere('id', $itemId);
-    }
-
-    /** Whether the candidate may change this item now. */
-    public function editable(object $item): bool
-    {
-        return in_array($item->status, ['pending', 'returned', 'submitted'], true);
-    }
-
-    /**
-     * Records a submission for one item. `$files` are already-validated uploads;
-     * `$values` are typed answers (encrypted before they are stored).
-     *
-     * @param  array<int, UploadedFile>  $files
-     * @param  array<string, mixed>  $values
-     *
-     * @throws UploadRejectedException|OfferAnswerRejectedException
-     */
-    public function submit(Application $application, object $item, array $files, array $values, ?string $ip = null, ?string $userAgent = null): void
-    {
-        $hr = $this->hrApplication($application);
-        if (! $hr || $hr->offer_status !== 'accepted') {
-            throw new OfferAnswerRejectedException('Onboarding opens after you accept the offer.');
-        }
-        if (! $this->editable($item)) {
-            throw new OfferAnswerRejectedException('The school has already approved this item, so it can no longer be changed.');
-        }
-
-        $module = $application->source_schema;
-        $stored = [];
-        foreach ($files as $file) {
-            $extension = strtolower($file->getClientOriginalExtension() ?: $file->guessExtension() ?: 'bin');
-            $path = $this->vault->pathFor($module, (int) $hr->id, $item->requirement_code, $extension);
-            $stored[] = $this->vault->store($file, $path, (int) $item->max_size_kb * 1024, $item->accepts);
-        }
-
-        $db = $this->db($module);
-        $db->transaction(function () use ($db, $hr, $item, $stored, $values, $module, $ip, $userAgent) {
-            $now = now();
-            $current = fn () => $db->table('hr_onboarding_submissions')->where('item_id', $item->id)->whereNull('superseded_at');
-
-            // Typed answers and uploads are separate rows, so replacing one never discards the other.
-            // Replaced rows are kept and marked superseded.
-            if ($stored !== []) {
-                $current()->whereNotNull('file_path')->update(['superseded_at' => $now, 'updated_at' => $now]);
-            }
-            if ($values) {
-                $current()->whereNull('file_path')->update(['superseded_at' => $now, 'updated_at' => $now]);
-            }
-
-            $base = ['schema_name' => $hr->schema_name, 'application_id' => $hr->id, 'item_id' => $item->id, 'created_at' => $now, 'updated_at' => $now, 'superseded_at' => null];
-            $rows = [];
-            foreach ($stored as $file) {
-                $rows[] = $base + ['file_path' => $file['path'], 'original_name' => $file['original_name'], 'mime' => $file['mime'], 'size' => $file['size'], 'sha256' => $file['sha256'], 'value_encrypted' => null];
-            }
-            if ($values) {
-                $rows[] = $base + ['file_path' => null, 'original_name' => null, 'mime' => null, 'size' => null, 'sha256' => null, 'value_encrypted' => SharedEncrypter::fromConfig()->encryptJson($values)];
-            }
-            if ($rows !== []) {
-                $db->table('hr_onboarding_submissions')->insert($rows);
-            }
-
-            $db->table('hr_onboarding_items')->where('id', $item->id)->update([
-                'status' => 'submitted', 'submitted_at' => $now, 'review_note' => null, 'reviewed_by' => null, 'reviewed_at' => null, 'updated_at' => $now,
-            ]);
-
-            $this->refreshOnboardingStatus($module, $hr->id);
-            $this->audit($module, $hr, 'onboarding_item_submitted', "Submitted: {$item->label}", $ip, $userAgent, ['item' => $item->requirement_code, 'files' => count($stored)]);
-        });
-    }
-
-    /** Same derivation HR uses: not_started, in_progress, submitted (all required handed in) or approved. Never changes an active account. */
-    public function refreshOnboardingStatus(string $module, int $hrApplicationId): string
-    {
-        $db = $this->db($module);
-        $current = (string) $db->table('applications')->where('id', $hrApplicationId)->value('onboarding_status');
-        if (in_array($current, ['active', 'locked', ''], true)) {
-            return $current;
-        }
-
-        $required = $db->table('hr_onboarding_items')->where('application_id', $hrApplicationId)->get()
-            ->filter(fn ($i) => in_array($i->required, [true, 1, '1', 't', 'true'], true));
-        $done = fn ($i) => in_array($i->status, ['approved', 'waived'], true);
-        $handedIn = fn ($i) => in_array($i->status, ['submitted', 'approved', 'waived'], true);
-
-        $state = match (true) {
-            $required->isNotEmpty() && $required->every($done) => 'approved',
-            $required->isNotEmpty() && $required->every($handedIn) => 'submitted',
-            $required->contains(fn ($i) => in_array($i->status, ['submitted', 'approved', 'returned', 'waived'], true)) => 'in_progress',
-            default => 'not_started',
-        };
-        $db->table('applications')->where('id', $hrApplicationId)->update(['onboarding_status' => $state]);
-
-        return $state;
+                return $item;
+            });
     }
 
     /** A 10-minute link to the template HR attached to an item. */
     public function templateUrl(object $item): ?string
     {
         return $item->template_path ? $this->vault->temporaryUrl($item->template_path) : null;
-    }
-
-    private function audit(string $module, object $hr, string $action, string $description, ?string $ip, ?string $userAgent, array $new): void
-    {
-        $this->db($module)->table('hr_audit_logs')->insert([
-            'user_id' => 0, 'action_type' => $action, 'table_affected' => 'applications', 'record_id' => $hr->id,
-            'description' => mb_substr($description, 0, 500), 'new_value' => json_encode($new), 'ip_address' => $ip,
-            'user_agent' => $userAgent ? mb_substr($userAgent, 0, 300) : null, 'severity' => 'low',
-            'requires_review' => DB::raw('false'), 'additional_context' => json_encode(['source' => 'talent']),
-            'schema_name' => $hr->schema_name, 'created_at' => now(), 'updated_at' => now(),
-        ]);
     }
 }
