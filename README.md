@@ -41,6 +41,20 @@ php artisan boost:install
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
+## Scheduled jobs and the server cron
+
+Talent now has scheduled commands (`routes/console.php`). The server must run the Laravel scheduler **every minute**:
+
+```
+* * * * * cd /path/to/talent && php artisan schedule:run >> /dev/null 2>&1
+```
+
+| Command | Runs | What it does |
+|---|---|---|
+| `onboarding:sync-statuses` | every 10 minutes | Notices onboarding items the HR module returned or approved and creates the in-app notification (checklist opened, item returned with the reviewer's reason, item approved, onboarding complete). |
+| `onboarding:reminders` | hourly | Emails and WhatsApps new hires who have not done their onboarding: one reminder 2 days after the checklist opens if nothing is submitted, one 2 days before the start date if required items are incomplete, and a daily reminder (at most 3) for an item returned and left untouched for 2 days. Sends nothing between 20:00 and 07:00 East Africa Time. |
+
+Both use `withoutOverlapping()`. Reminders need `NOTIFICATION_BASE_URL` / `NOTIFICATION_BEARER_TOKEN` (and `NOTIFICATION_SCHEMA_NAME`) in `.env`. The HR-onboarding feature itself is off unless `HR_ONBOARDING_ENABLED` is true and the private storage and `HR_ONBOARDING_ENCRYPTION_KEY` are configured; the key must be identical to the one in the HR application.
 ## Contributing
 
 Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
