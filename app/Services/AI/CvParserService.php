@@ -3,6 +3,7 @@
 namespace App\Services\AI;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpWord\IOFactory as WordIOFactory;
 use Smalot\PdfParser\Parser as PdfParser;
 
@@ -23,12 +24,25 @@ class CvParserService
     {
         $extension = strtolower($file->getClientOriginalExtension());
 
-        if ($extension === 'pdf') {
-            $parser = new PdfParser();
-            return $this->sanitizeUtf8($parser->parseFile($file->getRealPath())->getText());
+        if (!in_array($extension, ['pdf', 'docx', 'doc'], true)) {
+            throw new \InvalidArgumentException("Unsupported CV file type: {$extension}");
         }
 
-        if (in_array($extension, ['docx', 'doc'], true)) {
+        // A corrupted file, or one whose extension doesn't match its real
+        // content (not actually a valid PDF/zip archive despite the
+        // filename), throws a raw exception from these parsing libraries
+        // rather than just yielding no text -- confirmed live: this reached
+        // OnboardingController as an uncaught 500 for real candidates
+        // during "I'm New" onboarding, the single most important funnel in
+        // the app. Treat it the same as "no text found" -- the caller
+        // already has a good, tested "please try a different PDF or DOCX"
+        // response for exactly that case.
+        try {
+            if ($extension === 'pdf') {
+                $parser = new PdfParser();
+                return $this->sanitizeUtf8($parser->parseFile($file->getRealPath())->getText());
+            }
+
             $phpWord = WordIOFactory::load($file->getRealPath());
             $text = '';
             foreach ($phpWord->getSections() as $section) {
@@ -37,9 +51,14 @@ class CvParserService
                 }
             }
             return $this->sanitizeUtf8($text);
-        }
+        } catch (\Throwable $e) {
+            Log::warning('CvParserService: failed to parse uploaded CV file', [
+                'extension' => $extension,
+                'error' => $e->getMessage(),
+            ]);
 
-        throw new \InvalidArgumentException("Unsupported CV file type: {$extension}");
+            return '';
+        }
     }
 
     /**

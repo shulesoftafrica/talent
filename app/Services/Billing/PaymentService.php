@@ -74,14 +74,42 @@ class PaymentService
             return $existing;
         }
 
-        $order = VerificationOrder::create([
-            'candidate_id' => $candidate->id,
-            'kind' => $product,
-            'total_amount' => $amount,
-            'currency' => $currency,
-            'status' => 'pending',
-            'meta' => $meta,
-        ]);
+        try {
+            $order = VerificationOrder::create([
+                'candidate_id' => $candidate->id,
+                'kind' => $product,
+                'total_amount' => $amount,
+                'currency' => $currency,
+                'status' => 'pending',
+                'meta' => $meta,
+            ]);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            // Lost a race against a concurrent identical purchase attempt
+            // (e.g. a double-click) -- confirmed live: the pre-check above
+            // has a gap between its SELECT and this INSERT, and the DB's
+            // uq_verification_orders_one_pending_per_purchase constraint
+            // correctly rejected our insert since the other request's row
+            // already exists, but nothing caught that exception, so every
+            // loser of the race got an uncaught 500 instead of the same
+            // order. Fetch and return it instead -- same semantics as the
+            // pre-check, just reached via the race's losing side. Not
+            // requiring billing_invoice_id here (unlike the pre-check)
+            // since the winner may not have finished creating the invoice
+            // yet; the caller's existing status handling covers that.
+            $order = $candidate->verificationOrders()
+                ->where('kind', $product)
+                ->where('status', 'pending')
+                ->where('total_amount', $amount)
+                ->where('currency', $currency)
+                ->latest()
+                ->first();
+
+            if (!$order) {
+                throw $e;
+            }
+
+            return $order;
+        }
 
         $pricePlanId ??= $this->pricePlanIdFor($product);
 
